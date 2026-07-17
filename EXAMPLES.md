@@ -564,17 +564,17 @@ pd.DataFrame([pipeline.get_stats()]).T.style.format("{:.6f}")
 
 ---
 
-## Industrial Data Notebooks (Root Directory)
+## Industrial Data Notebooks (in `notebooks/`)
 
 ### Phase Synchronization Analysis (T11/T12 Temperatures)
 
 ```bash
-# Open the notebooks
-jupyter notebook kuramoto_sync_analysis_T11_T12.ipynb
-jupyter notebook kuramoto_jrp_analysis_T11_T12.ipynb
+# Open the notebooks from notebooks/ directory
+jupyter notebook notebooks/kuramoto_sync_analysis_T11_T12.ipynb
+jupyter notebook notebooks/kuramoto_jrp_analysis_T11_T12.ipynb
 ```
 
-These notebooks analyze synchronization between **FormacionMWEntT11TempPV** (MW inlet temperature T11) and **FormacionMWSalT12TempPV** (MW outlet temperature T12) from `data/datos_ind.pqt`.
+These notebooks analyze synchronization between **FormacionMWEntT11TempPV** (MW inlet temperature T11) and **FormacionMWSalT12TempPV** (MW outlet temperature T12) from `../data/datos_ind.pqt` (relative to notebooks/).
 
 **Analysis pipeline:**
 1. **Hilbert transform** → Extract instantaneous phase
@@ -606,9 +606,9 @@ print(f'Real lag (|distance/speed|): {lag}s ({lag/60:.1f} min)')
 This uses the belt/conveyor distance (18600 units) divided by the average `FormacionVelocidad` in the analysis window.
 
 ```python
-# Example: Load saved results
-results = pd.read_parquet('data/kuramoto_lag_sweep_T11_T12.parquet')
-jrp_results = pd.read_parquet('data/kuramoto_jrp_lag_sweep_T11_T12.parquet')
+# Example: Load saved results (from notebooks/ directory)
+results = pd.read_parquet('../data/kuramoto_lag_sweep_T11_T12.parquet')
+jrp_results = pd.read_parquet('../data/kuramoto_jrp_lag_sweep_T11_T12.parquet')
 
 # Find best lag
 best_kuramoto = results.loc[results['max_sustained_sec'].idxmax(), 'lag']
@@ -620,8 +620,19 @@ print(f"Best JRP lag: {best_jrp}s")
 ### Original Analysis (NIR Humidity / MW Humidity)
 
 ```bash
-jupyter notebook kuramoto_sync_analysis.ipynb
-jupyter notebook kuramoto_jrp_analysis.ipynb
+jupyter notebook notebooks/kuramoto_sync_analysis.ipynb
+jupyter notebook notebooks/kuramoto_sync_output.ipynb
+jupyter notebook notebooks/kuramoto_jrp_analysis.ipynb
+jupyter notebook notebooks/kuramoto_jrp_output.ipynb
 ```
 
-These use `FormacionNIRHumedadPV` and `Etapa2MWHumedadPV` from `data/synch_analysis_clean.parquet`.
+These use `FormacionNIRHumedadPV` and `Etapa2MWHumedadPV` from `../data/synch_analysis_clean.parquet`.
+
+### General Synchronization Analysis (peso data)
+
+```bash
+jupyter notebook notebooks/synch_analysis.ipynb
+jupyter notebook notebooks/synch_analysis_output.ipynb
+```
+
+These analyze `FormacionNIRHumedadPV` vs `Etapa2MWHumedadPV` from `../data/datos_peso_01_11_2021_07_11_2021.pqt` (1-7 Nov 2021).
