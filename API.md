@@ -106,6 +106,38 @@ class ParquetDataSource(DataSource):
 5. Center signals (remove mean)
 6. Symmetrize for Hilbert transform (mirror + concatenate)
 
+**Example: T11/T12 Temperatures from datos_ind.pqt**
+```python
+from synch_analysis import ParquetDataSource, SynchronizationPipeline
+
+# MW Inlet (T11) vs Outlet (T12) temperatures
+parquet = ParquetDataSource(
+    file_path="data/datos_ind.pqt",
+    column_a="FormacionMWEntT11TempPV",
+    column_b="FormacionMWSalT12TempPV",
+    index_start=0,
+    index_end=3600,  # 1 hour at 1 Hz
+    window=10,
+    lag=None,  # Test different lags manually
+    sampling_rate=1.0
+)
+
+pipeline = SynchronizationPipeline(parquet).run()
+pipeline.plot_dashboard()
+
+# To find optimal lag:
+for lag in range(-600, 601, 10):
+    p = ParquetDataSource(
+        file_path="data/datos_ind.pqt",
+        column_a="FormacionMWEntT11TempPV",
+        column_b="FormacionMWSalT12TempPV",
+        index_start=0, index_end=3600,
+        window=10, lag=lag, sampling_rate=1.0
+    )
+    stats = SynchronizationPipeline(p).run().get_stats()
+    print(f"Lag {lag:4d}: Mean R = {stats['mean_R']:.4f}")
+```
+
 ---
 
 ### LorenzDataSource

@@ -157,6 +157,15 @@ synch_agents/
 ├── data/                  # Data files (Parquet, etc.)
 ├── results/               # Analysis outputs
 ├── old/                   # Original notebooks (archived)
+├── kuramoto_sync_analysis_T11_T12.ipynb     # T11/T12 phase sync analysis
+├── kuramoto_sync_output_T11_T12.ipynb       # T11/T12 executable output
+├── kuramoto_jrp_analysis_T11_T12.ipynb      # T11/T12 combined Kuramoto+JRP
+├── kuramoto_jrp_output_T11_T12.ipynb        # T11/T12 combined output
+├── kuramoto_sync_analysis.ipynb             # Original NIR/MW humidity
+├── kuramoto_sync_output.ipynb               # Original executable
+├── kuramoto_jrp_analysis.ipynb              # Original combined
+├── kuramoto_jrp_output.ipynb                # Original combined output
+├── synch_analysis_unified.ipynb             # Complete framework demo
 ├── requirements.txt
 ├── pyproject.toml
 └── README.md
@@ -175,6 +184,33 @@ Available notebooks:
 - `sinusoid_analysis.ipynb` - Sinusoidal signal analysis
 - `coupled_oscillators.ipynb` - Kuramoto model oscillators
 - `synch_analysis_unified.ipynb` - Complete framework demo
+
+**Industrial data analysis (root directory):**
+- `kuramoto_sync_analysis_T11_T12.ipynb` - Phase sync: T11/T12 temperatures (MW inlet/outlet)
+- `kuramoto_sync_output_T11_T12.ipynb` - Executable output version
+- `kuramoto_jrp_analysis_T11_T12.ipynb` - Combined Kuramoto + JRP analysis
+- `kuramoto_jrp_output_T11_T12.ipynb` - Executable output version
+- `kuramoto_sync_analysis.ipynb` - Original: NIR Humidity / MW Humidity
+- `kuramoto_jrp_analysis.ipynb` - Original combined analysis
+
+**All T11/T12 notebooks include real lag calculation:** Each notebook computes the physical transport delay using `lag = distance / mean(FormacionVelocidad)` (18600 units / belt speed) for comparison with the optimal synchronization lag found by Kuramoto/JRP analysis.
+
+### Industrial Data Analysis (Root directory)
+
+Additional notebooks for industrial temperature synchronization analysis using Hilbert + Kuramoto + Joint Recurrence Plots:
+
+| Notebook | Data Source | Variables | Description |
+|----------|-------------|-----------|-------------|
+| `kuramoto_sync_analysis_T11_T12.ipynb` | `data/datos_ind.pqt` | FormacionMWEntT11TempPV, FormacionMWSalT12TempPV | Phase sync analysis (Hilbert + Kuramoto) |
+| `kuramoto_sync_output_T11_T12.ipynb` | `data/datos_ind.pqt` | FormacionMWEntT11TempPV, FormacionMWSalT12TempPV | Executable output version |
+| `kuramoto_jrp_analysis_T11_T12.ipynb` | `data/datos_ind.pqt` | FormacionMWEntT11TempPV, FormacionMWSalT12TempPV | Combined Kuramoto + JRP analysis |
+| `kuramoto_jrp_output_T11_T12.ipynb` | `data/datos_ind.pqt` | FormacionMWEntT11TempPV, FormacionMWSalT12TempPV | Combined analysis output |
+
+Original analysis (NIR Humidity / MW Humidity):
+- `kuramoto_sync_analysis.ipynb` - Phase sync analysis
+- `kuramoto_sync_output.ipynb` - Executable output
+- `kuramoto_jrp_analysis.ipynb` - Combined Kuramoto + JRP
+- `kuramoto_jrp_output.ipynb` - Combined output
 
 ## Results Interpretation
 

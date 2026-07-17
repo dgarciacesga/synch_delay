@@ -561,3 +561,67 @@ pipeline.plot_dashboard()
 import pandas as pd
 pd.DataFrame([pipeline.get_stats()]).T.style.format("{:.6f}")
 ```
+
+---
+
+## Industrial Data Notebooks (Root Directory)
+
+### Phase Synchronization Analysis (T11/T12 Temperatures)
+
+```bash
+# Open the notebooks
+jupyter notebook kuramoto_sync_analysis_T11_T12.ipynb
+jupyter notebook kuramoto_jrp_analysis_T11_T12.ipynb
+```
+
+These notebooks analyze synchronization between **FormacionMWEntT11TempPV** (MW inlet temperature T11) and **FormacionMWSalT12TempPV** (MW outlet temperature T12) from `data/datos_ind.pqt`.
+
+**Analysis pipeline:**
+1. **Hilbert transform** → Extract instantaneous phase
+2. **Kuramoto order parameter** → Measure phase synchronization R(t) ∈ [0,1]
+3. **Lag sweep** (±900s, step=10s) → Find optimal time delay
+4. **Joint Recurrence Plots** (JRP) → State-space synchronization (RR, DET, LAM)
+
+**Key metrics:**
+| Metric | Range | Meaning |
+|--------|-------|---------|
+| `r_mean` | [0,1] | Mean Kuramoto order parameter |
+| `frac_above_07` | [0,1] | Fraction of time with strong sync (R>0.7) |
+| `max_sustained_sec` | [0,∞) | Longest continuous sync segment |
+| `jrp_RR` | [0,1] | Joint Recurrence Rate |
+| `jrp_DET` | [0,1] | Determinism (diagonal lines) |
+| `jrp_LAM` | [0,1] | Laminarity (vertical lines) |
+
+**Optimal lag criteria:**
+- **Kuramoto**: Longest continuous segment where R > 0.7
+- **JRP**: Combined score RR × DET × max_diag
+- **Combined**: Arithmetic mean of both normalized scores
+
+**Real lag (physical transit time):**
+Each notebook computes the physical transit time between T11 and T12 at the end:
+```python
+lag = int(18600 / df['FormacionVelocidad'].loc[start_time:end_time].mean())
+print(f'Real lag (|distance/speed|): {lag}s ({lag/60:.1f} min)')
+```
+This uses the belt/conveyor distance (18600 units) divided by the average `FormacionVelocidad` in the analysis window.
+
+```python
+# Example: Load saved results
+results = pd.read_parquet('data/kuramoto_lag_sweep_T11_T12.parquet')
+jrp_results = pd.read_parquet('data/kuramoto_jrp_lag_sweep_T11_T12.parquet')
+
+# Find best lag
+best_kuramoto = results.loc[results['max_sustained_sec'].idxmax(), 'lag']
+best_jrp = jrp_results.loc[jrp_results['jrp_score'].idxmax(), 'lag']
+print(f"Best Kuramoto lag: {best_kuramoto}s")
+print(f"Best JRP lag: {best_jrp}s")
+```
+
+### Original Analysis (NIR Humidity / MW Humidity)
+
+```bash
+jupyter notebook kuramoto_sync_analysis.ipynb
+jupyter notebook kuramoto_jrp_analysis.ipynb
+```
+
+These use `FormacionNIRHumedadPV` and `Etapa2MWHumedadPV` from `data/synch_analysis_clean.parquet`.
