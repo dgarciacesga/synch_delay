@@ -1,0 +1,21 @@
+name: synch_analysis
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy>=1.21
+  - pandas>=1.3
+  - scipy>=1.7
+  - matplotlib>=3.4
+  - seaborn>=0.11
+  - pip
+  - pip:
+    - -e .
+  # Development dependencies
+  - pytest>=7.0
+  - black>=22.0
+  - flake8>=4.0
+  - mypy>=0.95
+  - jupyter>=1.0
+  - ipykernel
