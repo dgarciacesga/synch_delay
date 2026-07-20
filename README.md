@@ -1,4 +1,4 @@
-# synch_analysis - Unified Synchronization Analysis
+# synch_delay -  Synchronization Analysis
 
 A unified Python framework for analyzing synchronization in time series data using the **Kuramoto order parameter**.
 
