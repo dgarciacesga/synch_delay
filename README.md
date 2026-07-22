@@ -4,7 +4,7 @@ A unified Python framework for analyzing synchronization in time series data usi
 
 ## Features
 
-- **Multiple Data Sources**: Experimental/industrial (Parquet), Lorenz attractor, Sinusoidal, Coupled Oscillators (Kuramoto model)
+- **Multiple Data Sources**: Experimental/industrial (Parquet), Lorenz attractor (with sensor delay simulation), Sinusoidal, Coupled Oscillators (Kuramoto model)
 - **Core Analysis**: Hilbert transform, Instantaneous phase, Kuramoto order parameter R(t), Phase difference
 - **Visualization**: Comprehensive dashboards, Phase portraits, Animations
 - **Batch Comparison**: Compare synchronization across different data types
@@ -31,28 +31,18 @@ pip install -r requirements.txt
 ```python
 from synch_analysis import LorenzDataSource, SynchronizationPipeline
 
-# Lorenz attractor with two nearby initial conditions
+# Lorenz attractor with sensor delay simulation
 lorenz = LorenzDataSource(
     a=10.0, b=28.0, c=8.0/3.0,
-    initial_values_1=[0.01, 0, 0.3],
-    initial_values_2=[0.2, 0.1, 0.4],
-    iterations=1000
+    initial_values=[0.01, 0, 0.3],
+    iterations=5000,
+    delay_steps=150,   # 1.5s delay at 100 Hz sampling
+    noise_std=0.05,    # optional measurement noise
+    sampling_rate=100.0
 )
 
 # Run analysis pipeline
 pipeline = SynchronizationPipeline(lorenz).run()
-
-# View dashboard
-pipeline.plot_dashboard()
-
-# Get statistics
-stats = pipeline.get_stats()
-print(f"Mean R: {stats['mean_R']:.4f}")
-print(f"Sync ratio: {stats['sync_ratio']:.2%}")
-
-# Export results
-from synch_analysis import export_results
-export_results(pipeline, "results/")
 ```
 
 ### Other Data Sources
@@ -82,14 +72,17 @@ SynchronizationPipeline(parquet).run().plot_dashboard()
 | Source | Description | Parameters |
 |--------|-------------|------------|
 | `ParquetDataSource` | Industrial/experimental sensor data from Parquet files | `file_path`, `column_a`, `column_b`, `index_start`, `index_end`, `window`, `lag` |
-| `LorenzDataSource` | Lorenz attractor with configurable parameters | `a`, `b`, `c`, `dt`, `initial_values_1`, `initial_values_2`, `iterations`, `variable` |
+| `LorenzDataSource` | Lorenz attractor with sensor delay simulation | `a`, `b`, `c`, `dt`, `initial_values`, `iterations`, `variable`, `delay_steps`, `noise_std` |
 | `SinusoidDataSource` | Sinusoidal signals with controllable phase/frequency/delay | `ph0_a`, `ph0_b`, `frq_a`, `frq_b`, `pers`, `delay_a`, `delay_b` |
 | `CoupledOscillatorDataSource` | Kuramoto model coupled oscillators | `n_oscillators`, `coupling_strength`, `natural_freqs`, `dt`, `duration`, `noise_std` |
 
 ## CLI Usage
 
 ```bash
-# Lorenz attractor
+# Lorenz attractor with sensor delay
+synch-analysis lorenz --iterations 5000 --delay-steps 150 --noise 0.05 --output results/
+
+# Lorenz attractor (no delay, single signal copied)
 synch-analysis lorenz --iterations 1000 --output results/
 
 # Sinusoidal signals with phase delay
@@ -115,11 +108,12 @@ Common options:
 Lorenz:
   --a, --b, --c       Lorenz parameters (default: 10, 28, 2.667)
   --dt                Time step (default: 0.01)
-  --x1, --y1, --z1    Initial values 1 (default: 0.01, 0, 0.3)
-  --x2, --y2, --z2    Initial values 2 (default: 0.2, 0.1, 0.4)
+  --x, --y, --z       Initial values (default: 0.01, 0, 0.3)
   --iterations        Number of iterations (default: 1000)
   --variable          Variable to extract: x|y|z (default: x)
   --sampling-rate     Sampling rate in Hz (default: 100)
+  --delay-steps       Sensor delay in time steps (default: 0)
+  --noise             Measurement noise std (default: 0)
 
 Sinusoid:
   --ph0-a, --ph0-b    Initial phases (default: 0)

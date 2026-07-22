@@ -70,7 +70,7 @@ class ParquetDataSource(DataSource):
 
 
 class LorenzDataSource(DataSource):
-    """Generate Lorenz attractor time series."""
+    """Generate Lorenz attractor time series and its delayed version (sensor delay simulation)."""
 
     def __init__(
         self,
@@ -78,18 +78,20 @@ class LorenzDataSource(DataSource):
         b: float = 28.0,
         c: float = 8.0 / 3.0,
         dt: float = 0.01,
-        initial_values_1: Optional[List[float]] = None,
-        initial_values_2: Optional[List[float]] = None,
+        initial_values: Optional[List[float]] = None,
         iterations: int = 1000,
         variable: str = "x",
+        delay_steps: int = 0,
+        noise_std: float = 0.0,
         sampling_rate: float = 100.0,
     ):
         self.a, self.b, self.c = a, b, c
         self.dt = dt
-        self.initial_values_1 = initial_values_1 or [0.01, 0, 0.3]
-        self.initial_values_2 = initial_values_2 or [0.2, 0.1, 0.4]
+        self.initial_values = initial_values or [0.01, 0, 0.3]
         self.iterations = iterations
         self.variable = variable
+        self.delay_steps = delay_steps
+        self.noise_std = noise_std
         self.sampling_rate = sampling_rate
 
     def _generate(self, initial_values: List[float]) -> np.ndarray:
@@ -104,19 +106,41 @@ class LorenzDataSource(DataSource):
         return np.array({"x": x, "y": y, "z": z}[self.variable])
 
     def load(self) -> SignalPair:
-        signal_a = self._generate(self.initial_values_1)
-        signal_b = self._generate(self.initial_values_2)
+        signal_a = self._generate(self.initial_values)
+
+        # Create delayed version of signal_a if delay specified
+        if self.delay_steps > 0:
+            signal_b = np.concatenate([np.full(self.delay_steps, np.nan), signal_a[:-self.delay_steps]])
+            signal_b = pd.Series(signal_b).interpolate(limit_direction='both').values
+        elif self.delay_steps < 0:
+            signal_b = np.concatenate([signal_a[-self.delay_steps:], np.full(-self.delay_steps, np.nan)])
+            signal_b = pd.Series(signal_b).interpolate(limit_direction='both').values
+        else:
+            signal_b = signal_a.copy()
+
+        # Add optional noise to delayed signal
+        if self.noise_std > 0:
+            signal_b += np.random.normal(0, self.noise_std, len(signal_b))
+
+        # Center signals
+        signal_a = signal_a - np.mean(signal_a)
+        signal_b = signal_b - np.mean(signal_b)
+
+        if self.delay_steps != 0:
+            name_b = f"Lorenz {self.variable} (delayed by {self.delay_steps} steps)"
+        else:
+            name_b = f"Lorenz {self.variable} (IC2)"
 
         return SignalPair(
             signal_a=signal_a,
             signal_b=signal_b,
-            name_a=f"Lorenz {self.variable} (IC1)",
-            name_b=f"Lorenz {self.variable} (IC2)",
+            name_a=f"Lorenz {self.variable} (source)",
+            name_b=name_b,
             sampling_rate=self.sampling_rate,
         )
 
     def get_description(self) -> str:
-        return f"Lorenz attractor: a={self.a}, b={self.b}, c={self.c:.3f}, var={self.variable}"
+        return f"Lorenz attractor: a={self.a}, b={self.b}, c={self.c:.3f}, var={self.variable}, delay={self.delay_steps} steps, noise={self.noise_std}"
 
 
 class SinusoidDataSource(DataSource):
@@ -159,75 +183,6 @@ class SinusoidDataSource(DataSource):
 
     def get_description(self) -> str:
         return f"Sinusoids: phi0_1={self.ph0_a}, f1={self.frq_a}, d1={self.delay_a} | phi0_2={self.ph0_b}, f2={self.frq_b}, d2={self.delay_b}"
-
-
-class DelayedLorenzDataSource(DataSource):
-    """Generate Lorenz attractor time series and its delayed version (simulating sensor delay)."""
-
-    def __init__(
-        self,
-        a: float = 10.0,
-        b: float = 28.0,
-        c: float = 8.0 / 3.0,
-        dt: float = 0.01,
-        initial_values: Optional[List[float]] = None,
-        iterations: int = 1000,
-        variable: str = "x",
-        delay_steps: int = 100,
-        noise_std: float = 0.0,
-        sampling_rate: float = 100.0,
-    ):
-        self.a, self.b, self.c = a, b, c
-        self.dt = dt
-        self.initial_values = initial_values or [0.01, 0, 0.3]
-        self.iterations = iterations
-        self.variable = variable
-        self.delay_steps = delay_steps
-        self.noise_std = noise_std
-        self.sampling_rate = sampling_rate
-
-    def _generate(self, initial_values: List[float]) -> np.ndarray:
-        x, y, z = [initial_values[0]], [initial_values[1]], [initial_values[2]]
-        for _ in range(self.iterations):
-            dxdt = self.a * (y[-1] - x[-1])
-            dydt = x[-1] * (self.b - z[-1]) - y[-1]
-            dzdt = x[-1] * y[-1] - self.c * z[-1]
-            x.append(x[-1] + self.dt * dxdt)
-            y.append(y[-1] + self.dt * dydt)
-            z.append(z[-1] + self.dt * dzdt)
-        return np.array({"x": x, "y": y, "z": z}[self.variable])
-
-    def load(self) -> SignalPair:
-        signal_a = self._generate(self.initial_values)
-
-        # Create delayed version of signal_a
-        if self.delay_steps > 0:
-            signal_b = np.concatenate([np.full(self.delay_steps, np.nan), signal_a[:-self.delay_steps]])
-            signal_b = pd.Series(signal_b).interpolate(limit_direction='both').values
-        elif self.delay_steps < 0:
-            signal_b = np.concatenate([signal_a[-self.delay_steps:], np.full(-self.delay_steps, np.nan)])
-            signal_b = pd.Series(signal_b).interpolate(limit_direction='both').values
-        else:
-            signal_b = signal_a.copy()
-
-        # Add optional noise to delayed signal
-        if self.noise_std > 0:
-            signal_b += np.random.normal(0, self.noise_std, len(signal_b))
-
-        # Center signals
-        signal_a = signal_a - np.mean(signal_a)
-        signal_b = signal_b - np.mean(signal_b)
-
-        return SignalPair(
-            signal_a=signal_a,
-            signal_b=signal_b,
-            name_a=f"Lorenz {self.variable} (source)",
-            name_b=f"Lorenz {self.variable} (delayed by {self.delay_steps} steps)",
-            sampling_rate=self.sampling_rate,
-        )
-
-    def get_description(self) -> str:
-        return f"Delayed Lorenz: a={self.a}, b={self.b}, c={self.c:.3f}, var={self.variable}, delay={self.delay_steps} steps, noise={self.noise_std}"
 
 
 class CoupledOscillatorDataSource(DataSource):
