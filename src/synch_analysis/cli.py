@@ -78,7 +78,7 @@ Examples:
   synch-analysis sinusoid --delay-b 3 --output results/
   
   # Coupled oscillators
-  synch-analysis coupled --coupling 0.8 --freqs 1.0,1.05 --output results/
+  synch-analysis coupled --coupling 0.8 --freqs 1.0 1.05 --output results/
   
   # Parquet data
   synch-analysis parquet --file data.pqt --col-a Temp1 --col-b Temp2 --output results/
