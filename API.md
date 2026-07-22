@@ -144,7 +144,7 @@ for lag in range(-600, 601, 10):
 
 ```python
 class LorenzDataSource(DataSource):
-    """Generate Lorenz attractor time series."""
+    """Generate Lorenz attractor time series and its delayed version (sensor delay simulation)."""
     
     def __init__(
         self,
@@ -152,10 +152,11 @@ class LorenzDataSource(DataSource):
         b: float = 28.0,
         c: float = 8.0 / 3.0,
         dt: float = 0.01,
-        initial_values_1: Optional[List[float]] = None,
-        initial_values_2: Optional[List[float]] = None,
+        initial_values: Optional[List[float]] = None,
         iterations: int = 1000,
         variable: str = "x",
+        delay_steps: int = 0,
+        noise_std: float = 0.0,
         sampling_rate: float = 100.0,
     ):
 ```
@@ -163,9 +164,11 @@ class LorenzDataSource(DataSource):
 **Parameters:**
 - `a`, `b`, `c`: Lorenz system parameters (default: classic chaotic regime)
 - `dt`: Time step for integration
-- `initial_values_1`, `initial_values_2`: Initial [x, y, z] for two trajectories
+- `initial_values`: Initial [x, y, z] (default: [0.01, 0, 0.3])
 - `iterations`: Number of integration steps
 - `variable`: Which variable to extract ("x", "y", or "z")
+- `delay_steps`: Sensor delay in time steps (default: 0). Creates delayed version of signal A
+- `noise_std`: Optional Gaussian noise std for delayed signal
 - `sampling_rate`: Output sampling rate
 
 ---

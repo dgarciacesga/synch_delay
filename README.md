@@ -72,9 +72,9 @@ SynchronizationPipeline(parquet).run().plot_dashboard()
 | Source | Description | Parameters |
 |--------|-------------|------------|
 | `ParquetDataSource` | Industrial/experimental sensor data from Parquet files | `file_path`, `column_a`, `column_b`, `index_start`, `index_end`, `window`, `lag` |
-| `LorenzDataSource` | Lorenz attractor with sensor delay simulation | `a`, `b`, `c`, `dt`, `initial_values`, `iterations`, `variable`, `delay_steps`, `noise_std` |
-| `SinusoidDataSource` | Sinusoidal signals with controllable phase/frequency/delay | `ph0_a`, `ph0_b`, `frq_a`, `frq_b`, `pers`, `delay_a`, `delay_b` |
-| `CoupledOscillatorDataSource` | Kuramoto model coupled oscillators | `n_oscillators`, `coupling_strength`, `natural_freqs`, `dt`, `duration`, `noise_std` |
+| `LorenzDataSource` | Lorenz attractor with sensor delay simulation | `a`, `b`, `c`, `dt`, `initial_values`, `iterations`, `variable`, `delay_steps`, `noise_std`, `sampling_rate` |
+| `SinusoidDataSource` | Sinusoidal signals with controllable phase/frequency/delay | `ph0_a`, `ph0_b`, `frq_a`, `frq_b`, `pers`, `delay_a`, `delay_b`, `iterations`, `sampling_rate` |
+| `CoupledOscillatorDataSource` | Kuramoto model coupled oscillators | `n_oscillators`, `coupling_strength`, `natural_freqs`, `dt`, `duration`, `noise_std`, `sampling_rate` |
 
 ## CLI Usage
 
@@ -125,6 +125,7 @@ Coupled:
   --coupling          Coupling strength K (default: 0.5)
   --freqs             Natural frequencies (space-separated, default: 1.0 1.05)
   --duration          Simulation duration (default: 100)
+  --dt                Time step (default: 0.01)
   --noise             Noise standard deviation (default: 0)
 
 Parquet:
@@ -138,7 +139,7 @@ Parquet:
 ## Project Structure
 
 ```
-synch_agents/
+synch_delay/
 ├── src/synch_analysis/    # Main package
 │   ├── __init__.py        # Public API
 │   ├── core.py            # Core data structures (SignalPair, DataSource)

@@ -505,7 +505,7 @@ synch-analysis lorenz --iterations 2000 --output results/lorenz --dashboard --st
 synch-analysis sinusoid --delay-b 3 --pers 5 --output results/sinusoid --dashboard
 
 # Coupled oscillators
-synch-analysis coupled --coupling 1.5 --freqs 1.0,1.05 --duration 50 --output results/coupled
+synch-analysis coupled --coupling 1.5 --freqs 1.0 1.05 --duration 50 --output results/coupled
 
 # Parquet data
 synch-analysis parquet --file data/sensors.pqt --col-a T1 --col-b T2 --window 30 --output results/parquet
