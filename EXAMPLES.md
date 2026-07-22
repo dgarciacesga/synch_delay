@@ -9,12 +9,14 @@ Complete usage examples for `synch_analysis`.
 ```python
 from synch_analysis import LorenzDataSource, SynchronizationPipeline
 
-# Lorenz attractor with two nearby initial conditions
+# Lorenz attractor with sensor delay simulation
 lorenz = LorenzDataSource(
     a=10.0, b=28.0, c=8.0/3.0,
-    initial_values_1=[0.01, 0, 0.3],
-    initial_values_2=[0.2, 0.1, 0.4],
-    iterations=1000
+    initial_values=[0.01, 0, 0.3],
+    iterations=5000,
+    delay_steps=150,   # 1.5s delay at 100 Hz sampling
+    noise_std=0.05,    # optional measurement noise
+    sampling_rate=100.0
 )
 
 # Run analysis pipeline
@@ -43,16 +45,17 @@ export_results(pipeline, "results/lorenz_analysis")
 from synch_analysis import LorenzDataSource, SynchronizationPipeline
 import numpy as np
 
-# Classic chaotic regime
+# Classic chaotic regime with sensor delay
 lorenz = LorenzDataSource(
     a=10.0,
     b=28.0,
     c=8.0/3.0,
     dt=0.01,
-    initial_values_1=[0.01, 0, 0.3],
-    initial_values_2=[0.2, 0.1, 0.4],  # Slightly different IC
+    initial_values=[0.01, 0, 0.3],
     iterations=5000,
     variable="x",  # or "y", "z"
+    delay_steps=150,    # Simulated sensor delay (steps)
+    noise_std=0.05,     # Optional measurement noise
     sampling_rate=100.0
 )
 
@@ -68,12 +71,24 @@ lorenz_periodic = LorenzDataSource(b=10.0, iterations=3000)
 # Different variables
 lorenz_y = LorenzDataSource(variable="y", iterations=2000)
 
-# Larger separation in ICs
-lorenz_separated = LorenzDataSource(
-    initial_values_1=[0.01, 0, 0.3],
-    initial_values_2=[5.0, 5.0, 10.0],  # Far apart
-    iterations=3000
+# No delay - identical signals (backward compatible)
+lorenz_copy = LorenzDataSource(
+    initial_values=[0.01, 0, 0.3],
+    iterations=3000,
+    delay_steps=0  # Creates copy of signal_a as signal_b
 )
+
+# Delay detection: sweep delay to find true sensor delay
+for delay in range(0, 300, 10):
+    lorenz = LorenzDataSource(
+        initial_values=[0.01, 0, 0.3],
+        iterations=2000,
+        delay_steps=delay,
+        noise_std=0.02
+    )
+    pipeline = SynchronizationPipeline(lorenz).run()
+    stats = pipeline.get_stats()
+    print(f"Delay {delay:3d}: Mean R = {stats['mean_R']:.4f}")
 ```
 
 ---
