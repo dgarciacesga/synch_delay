@@ -607,9 +607,9 @@ These notebooks analyze synchronization between **FormacionMWEntT11TempPV** (MW 
 | `jrp_DET` | [0,1] | Determinism (diagonal lines) |
 | `jrp_LAM` | [0,1] | Laminarity (vertical lines) |
 
-**Optimal lag criteria:**
-- **Kuramoto**: Longest continuous segment where R > 0.7
-- **JRP**: Combined score RR × DET × max_diag
+**Optimal lag criteria (updated):**
+- **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and maximum mean Kuramoto r
+- **JRP**: Combined score RR × DET × max_diag (excluding extreme lags)
 - **Combined**: Arithmetic mean of both normalized scores
 
 **Real lag (physical transit time):**
@@ -625,8 +625,8 @@ This uses the belt/conveyor distance (18600 units) divided by the average `Forma
 results = pd.read_parquet('../data/kuramoto_lag_sweep_T11_T12.parquet')
 jrp_results = pd.read_parquet('../data/kuramoto_jrp_lag_sweep_T11_T12.parquet')
 
-# Find best lag
-best_kuramoto = results.loc[results['max_sustained_sec'].idxmax(), 'lag']
+# Find best lag (using updated criteria)
+best_kuramoto = results.loc[results['kuramoto_score'].idxmax(), 'lag']
 best_jrp = jrp_results.loc[jrp_results['jrp_score'].idxmax(), 'lag']
 print(f"Best Kuramoto lag: {best_kuramoto}s")
 print(f"Best JRP lag: {best_jrp}s")
@@ -651,3 +651,25 @@ jupyter notebook notebooks/synch_analysis_output.ipynb
 ```
 
 These analyze `FormacionNIRHumedadPV` vs `Etapa2MWHumedadPV` from `../data/datos_peso_01_11_2021_07_11_2021.pqt` (1-7 Nov 2021).
+
+### Lorenz Delayed Signal Analysis
+
+```bash
+jupyter notebook notebooks/kuramoto_jrp_analysis_lorenz_delayed.ipynb
+jupyter notebook notebooks/kuramoto_jrp_output_lorenz_delayed.ipynb
+```
+
+These analyze synchronization between a Lorenz x-variable and its delayed version (true delay: 150 steps = 1.5s at 100 Hz).
+
+**Analysis pipeline:**
+1. **Hilbert transform** → Extract instantaneous phase
+2. **Kuramoto order parameter** → Measure phase synchronization R(t) ∈ [0,1]
+3. **Lag sweep** (±300 steps, step=1) → Find optimal time delay
+4. **Joint Recurrence Plots** (JRP) → State-space synchronization (RR, DET, LAM)
+
+**Optimal lag criteria (updated):**
+- **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and maximum mean Kuramoto r
+- **JRP**: Combined score RR × DET × max_diag (excluding extreme lags)
+- **Combined**: Arithmetic mean of both normalized scores
+
+**True delay:** Known to be 150 steps (1.5s), used as ground truth for validation.
