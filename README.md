@@ -192,8 +192,15 @@ Available notebooks:
 - `kuramoto_sync_output_T11_T12.ipynb` - Executable output version
 - `kuramoto_jrp_analysis_T11_T12.ipynb` - Combined Kuramoto + JRP analysis
 - `kuramoto_jrp_output_T11_T12.ipynb` - Executable output version
+- `kuramoto_jrp_analysis_lorenz_delayed.ipynb` - Lorenz delayed signal analysis
+- `kuramoto_jrp_output_lorenz_delayed.ipynb` - Lorenz delayed output
 
-**All T11/T12 notebooks include real lag calculation:** Each notebook computes the physical transport delay using `lag = distance / mean(FormacionVelocidad)` (18600 units / belt speed) for comparison with the optimal synchronization lag found by Kuramoto/JRP analysis.
+**All JRP notebooks include real lag calculation:** Physical transport delay computed and marked on plots for comparison with optimal synchronization lag.
+
+**Analysis criteria (updated):**
+- **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and maximum mean Kuramoto r
+- **JRP**: Combined RR × DET × max_diag score, excluding extreme lags
+- **Combined**: Arithmetic mean of normalized Kuramoto and JRP scores
 
 ## Results Interpretation
 
