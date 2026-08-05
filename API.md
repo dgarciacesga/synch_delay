@@ -404,3 +404,48 @@ def export_results(pipeline: SynchronizationPipeline, output_dir: str = "results
 - `sync_stats.csv`: Summary statistics
 - `sync_timeseries.csv`: Time series (time, R, phase_diff, phase_a, phase_b)
 - `sync_dashboard.png`: Dashboard figure
+
+---
+
+## Publication-Quality Figure Settings
+
+All notebooks use publication-quality matplotlib settings for journal-ready figures:
+
+```python
+# Publication-quality figure settings
+plt.rcParams.update({
+    'figure.figsize': (14, 6),
+    'font.size': 12,
+    'font.family': 'sans-serif',
+    'font.sans-serif': ['Arial', 'DejaVu Sans', 'Liberation Sans'],
+    'figure.dpi': 300,
+    'savefig.dpi': 300,
+    'savefig.bbox': 'tight',
+    'savefig.pad_inches': 0.1,
+    'figure.facecolor': 'white',
+    'axes.facecolor': 'white',
+    'axes.edgecolor': 'black',
+    'axes.grid': False,
+    'axes.axisbelow': True,
+    'axes.spines.top': True,
+    'axes.spines.right': True,
+    'axes.linewidth': 0.8,
+    'xtick.major.size': 4,
+    'xtick.major.width': 0.8,
+    'ytick.major.size': 4,
+    'ytick.major.width': 0.8,
+    'legend.frameon': True,
+    'legend.framealpha': 0.9,
+    'legend.edgecolor': 'black',
+    'lines.linewidth': 1.0,
+    'lines.markersize': 4
+})
+```
+
+**Key settings:**
+- **White background**: `figure.facecolor` and `axes.facecolor` set to `'white'`
+- **No grid**: `axes.grid` set to `False`
+- **High DPI**: `figure.dpi` and `savefig.dpi` set to `300` for print quality
+- **Tight layout**: `savefig.bbox` set to `'tight'` with minimal padding
+- **Visible spines**: All axis spines visible for clear data boundaries
+- **Publication-quality legends**: Semi-transparent frames with black edges
