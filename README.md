@@ -198,9 +198,15 @@ Available notebooks:
 **All JRP notebooks include real lag calculation:** Physical transport delay computed and marked on plots for comparison with optimal synchronization lag.
 
 **Analysis criteria (updated):**
-- **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and maximum mean Kuramoto r
-- **JRP**: Combined RR × DET × max_diag score, excluding extreme lags
+- **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and mean Kuramoto r (r_mean)
+- **JRP**: Combined DET × LAM × RR score, excluding extreme lags (±max_lag)
 - **Combined**: Arithmetic mean of normalized Kuramoto and JRP scores
+
+**Figure settings:**
+- Publication-quality figures with white background
+- No grid lines
+- High DPI (300) suitable for journal publication
+- Tight bounding box and minimal padding
 
 ## Results Interpretation
 

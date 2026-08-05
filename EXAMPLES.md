@@ -608,8 +608,8 @@ These notebooks analyze synchronization between **FormacionMWEntT11TempPV** (MW 
 | `jrp_LAM` | [0,1] | Laminarity (vertical lines) |
 
 **Optimal lag criteria (updated):**
-- **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and maximum mean Kuramoto r
-- **JRP**: Combined score RR × DET × max_diag (excluding extreme lags)
+- **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and mean Kuramoto r (r_mean)
+- **JRP**: Combined DET × LAM × RR score, excluding extreme lags (±max_lag)
 - **Combined**: Arithmetic mean of both normalized scores
 
 **Real lag (physical transit time):**
@@ -619,6 +619,13 @@ lag = int(18600 / df['FormacionVelocidad'].loc[start_time:end_time].mean())
 print(f'Real lag (|distance/speed|): {lag}s ({lag/60:.1f} min)')
 ```
 This uses the belt/conveyor distance (18600 units) divided by the average `FormacionVelocidad` in the analysis window.
+
+**Figure settings:**
+All notebooks use publication-quality figure settings:
+- White background
+- No grid lines
+- High DPI (300) suitable for journal publication
+- Tight bounding box and minimal padding
 
 ```python
 # Example: Load saved results (from notebooks/ directory)
@@ -668,8 +675,14 @@ These analyze synchronization between a Lorenz x-variable and its delayed versio
 4. **Joint Recurrence Plots** (JRP) → State-space synchronization (RR, DET, LAM)
 
 **Optimal lag criteria (updated):**
-- **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and maximum mean Kuramoto r
-- **JRP**: Combined score RR × DET × max_diag (excluding extreme lags)
+- **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and mean Kuramoto r (r_mean)
+- **JRP**: Combined DET × LAM × RR score, excluding extreme lags (±max_lag)
 - **Combined**: Arithmetic mean of both normalized scores
 
 **True delay:** Known to be 150 steps (1.5s), used as ground truth for validation.
+
+**Figure settings:**
+All notebooks use publication-quality figure settings:
+- White background
+- No grid lines
+- High DPI (300) suitable for journal publication

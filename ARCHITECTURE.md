@@ -292,6 +292,14 @@ class SynchronizationVisualizer:
 └──────────┴──────────┴──────────┘
 ```
 
+**Figure settings:**
+All notebooks use publication-quality settings:
+- White background (`figure.facecolor` and `axes.facecolor`)
+- No grid lines (`axes.grid: False`)
+- High DPI (300) for print quality
+- Tight bounding box for minimal whitespace
+- Visible axis spines for clear data boundaries
+
 ---
 
 ## Pipeline (`pipeline.py`)
