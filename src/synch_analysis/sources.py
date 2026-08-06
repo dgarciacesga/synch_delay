@@ -185,6 +185,124 @@ class SinusoidDataSource(DataSource):
         return f"Sinusoids: phi0_1={self.ph0_a}, f1={self.frq_a}, d1={self.delay_a} | phi0_2={self.ph0_b}, f2={self.frq_b}, d2={self.delay_b}"
 
 
+class BelousovZhabotinskyDataSource(DataSource):
+    """Generate Belousov-Zhabotinsky oscillator time series using the Oregonator model.
+
+    The Oregonator is the simplest realistic model of the BZ reaction chemical dynamics.
+    Uses the reduced (2-variable) form via steady-state approximation for y:
+        ε(dx/dt) = qy - xy + x(1 - x)
+        ε'(dy/dt) = -qy - xy + fz
+        dz/dt = x - z
+    Reduced form (y steady-state):
+        ε(dx/dt) = x(1-x) - f*z*(x-q)/(x+q)
+        dz/dt = x - z
+
+    Parameters for oscillatory regime:
+        f: stoichiometric parameter (typically 0.5-3, must be > 0.5 for oscillation)
+        q: small parameter (typically 1e-4 to 0.1)
+        eps: time-scale separation parameter (typically 0.01-0.1)
+
+    Uses scipy's LSODA solver for stiff ODE integration.
+
+    Reference: Field, R.J., & Noyes, R.M. (1974). "Oscillations in Chemical Systems IV."
+                J. Chem. Phys. 60, 1877-1884.
+               Epstein, R.J., & Pojman, A.P. (1998). "An Introduction to Nonlinear
+               Chemical Dynamics." Oxford University Press.
+    """
+
+    def __init__(
+        self,
+        f: float = 1.0,
+        q: float = 0.05,
+        eps: float = 0.02,
+        dt: float = 0.01,
+        initial_values: Optional[List[float]] = None,
+        iterations: int = 10000,
+        variable: str = "x",
+        delay_steps: int = 100,
+        noise_std: float = 0.05,
+        sampling_rate: float = 100.0,
+        transient: int = 2000,
+    ):
+        self.f = f
+        self.q = q
+        self.eps = eps
+        self.dt = dt
+        self.initial_values = initial_values or [0.1, 0.1]
+        self.iterations = iterations
+        self.variable = variable
+        self.delay_steps = delay_steps
+        self.noise_std = noise_std
+        self.sampling_rate = sampling_rate
+        self.transient = transient
+
+    def _generate(self, initial_values: List[float]) -> np.ndarray:
+        """Generate Oregonator time series using scipy's LSODA stiff solver."""
+        from scipy.integrate import solve_ivp
+
+        t_end = self.iterations * self.dt
+
+        def oregonator(t, y):
+            x, z = y
+            dx = (1.0 / self.eps) * (x * (1 - x) - self.f * z * (x - self.q) / (x + self.q))
+            dz = x - z
+            return [dx, dz]
+
+        sol = solve_ivp(
+            oregonator, [0, t_end], initial_values,
+            method='LSODA',
+            dense_output=True,
+        )
+
+        t_grid = np.arange(0, t_end, self.dt)
+        y = sol.sol(t_grid)
+        signals = {"x": y[0], "z": y[1]}
+        signal = signals[self.variable]
+
+        # Remove transient
+        if self.transient > 0 and len(signal) > self.transient:
+            signal = signal[self.transient:]
+
+        return signal
+
+    def load(self) -> SignalPair:
+        signal_a = self._generate(self.initial_values)
+
+        if self.delay_steps > 0:
+            signal_b = np.concatenate([np.full(self.delay_steps, np.nan), signal_a[:-self.delay_steps]])
+            signal_b = pd.Series(signal_b).interpolate(limit_direction='both').values
+        elif self.delay_steps < 0:
+            signal_b = np.concatenate([signal_a[-self.delay_steps:], np.full(-self.delay_steps, np.nan)])
+            signal_b = pd.Series(signal_b).interpolate(limit_direction='both').values
+        else:
+            signal_b = signal_a.copy()
+
+        # Add noise to BOTH signals
+        if self.noise_std > 0:
+            rng = np.random.default_rng(42)
+            signal_a = signal_a + rng.normal(0, self.noise_std, len(signal_a))
+            signal_b = signal_b + rng.normal(0, self.noise_std, len(signal_b))
+
+        signal_a = signal_a - np.mean(signal_a)
+        signal_b = signal_b - np.mean(signal_b)
+
+        if self.delay_steps != 0:
+            name_b = f"BZ {self.variable} (delayed by {self.delay_steps} steps)"
+        else:
+            name_b = f"BZ {self.variable} (run 2)"
+
+        return SignalPair(
+            signal_a=signal_a,
+            signal_b=signal_b,
+            name_a=f"BZ {self.variable} (source)",
+            name_b=name_b,
+            sampling_rate=self.sampling_rate,
+        )
+
+    def get_description(self) -> str:
+        return f"Belousov-Zhabotinsky (Oregonator): f={self.f}, q={self.q}, eps={self.eps}, var={self.variable}, delay={self.delay_steps} steps, noise={self.noise_std}"
+
+
 class CoupledOscillatorDataSource(DataSource):
     """Generate synthetic coupled oscillators (Kuramoto model)."""
 
