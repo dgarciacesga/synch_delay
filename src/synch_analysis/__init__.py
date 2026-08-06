@@ -9,6 +9,7 @@ Supports:
 - Lorenz attractor simulations
 - Sinusoidal signals
 - Synthetic coupled oscillators (Kuramoto model)
+- Belousov-Zhabotinsky oscillator (Oregonator model)
 """
 
 from .core import SignalPair, DataSource
@@ -17,6 +18,7 @@ from .sources import (
     LorenzDataSource,
     SinusoidDataSource,
     CoupledOscillatorDataSource,
+    BelousovZhabotinskyDataSource,
 )
 from .analyzer import SynchronizationAnalyzer
 from .visualizer import SynchronizationVisualizer
@@ -30,6 +32,7 @@ __all__ = [
     "LorenzDataSource",
     "SinusoidDataSource",
     "CoupledOscillatorDataSource",
+    "BelousovZhabotinskyDataSource",
     "SynchronizationAnalyzer",
     "SynchronizationVisualizer",
     "SynchronizationPipeline",
