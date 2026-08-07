@@ -18,6 +18,7 @@ Technical architecture and design decisions for `synch_analysis`.
 │  │ • Lorenz     │    │ • DataSource │    │ • Kuramoto Order Parameter   │  │
 │  │ • Sinusoid   │    │   (ABC)      │    │ • Phase Difference           │  │
 │  │ • Coupled    │    └──────────────┘    │ • Sliding Window             │  │
+│  │ • BZ (Oregon.)│                       │ • Summary Statistics         │  │
 │  └──────────────┘                         │ • Summary Statistics         │  │
 │                                           └──────────────┬───────────────┘  │
 │                                                          │                  │
@@ -201,6 +202,30 @@ signal_b = np.cos(phase_history[:, 1])
 **Model:** Kuramoto model with N oscillators, all-to-all coupling.
 
 **Output:** Cosine of phase for first two oscillators.
+
+---
+
+### BelousovZhabotinskyDataSource
+
+```python
+def _generate(self, initial_values: List[float]) -> np.ndarray:
+    def oregonator(t, y):
+        x, z = y
+        dx = (1.0 / self.eps) * (x * (1 - x) - self.f * z * (x - self.q) / (x + self.q))
+        dz = x - z
+        return [dx, dz]
+
+    sol = solve_ivp(oregonator, [0, t_end], initial_values,
+                    method='LSODA', dense_output=True)
+    ...
+    signal = signals[self.variable]
+    signal = signal[self.transient:]  # Remove transient
+    return signal
+```
+
+**Solver:** scipy's LSODA stiff ODE solver.
+
+**Variables:** Selectable "x" or "z" component (2-variable reduced Oregonator).
 
 ---
 

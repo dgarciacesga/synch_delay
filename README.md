@@ -4,7 +4,7 @@ A unified Python framework for analyzing synchronization in time series data usi
 
 ## Features
 
-- **Multiple Data Sources**: Experimental/industrial (Parquet), Lorenz attractor (with sensor delay simulation), Sinusoidal, Coupled Oscillators (Kuramoto model)
+- **Multiple Data Sources**: Experimental/industrial (Parquet), Lorenz attractor, Sinusoidal, Coupled Oscillators (Kuramoto model), Belousov-Zhabotinsky (Oregonator model)
 - **Core Analysis**: Hilbert transform, Instantaneous phase, Kuramoto order parameter R(t), Phase difference
 - **Visualization**: Comprehensive dashboards, Phase portraits, Animations
 - **Batch Comparison**: Compare synchronization across different data types
@@ -65,6 +65,17 @@ SynchronizationPipeline(coupled).run().plot_dashboard()
 from synch_analysis import ParquetDataSource
 parquet = ParquetDataSource("data/sensor.pqt", "Temp_T11", "Temp_T12")
 SynchronizationPipeline(parquet).run().plot_dashboard()
+
+# Belousov-Zhabotinsky oscillator (Oregonator model) with sensor delay
+from synch_analysis import BelousovZhabotinskyDataSource
+bz = BelousovZhabotinskyDataSource(
+    f=1.0, q=0.05, eps=0.02,
+    iterations=10000,
+    delay_steps=100,   # Simulated sensor delay
+    noise_std=0.05,
+    sampling_rate=100.0
+)
+SynchronizationPipeline(bz).run().plot_dashboard()
 ```
 
 ## Data Sources
@@ -75,6 +86,7 @@ SynchronizationPipeline(parquet).run().plot_dashboard()
 | `LorenzDataSource` | Lorenz attractor with sensor delay simulation | `a`, `b`, `c`, `dt`, `initial_values`, `iterations`, `variable`, `delay_steps`, `noise_std`, `sampling_rate` |
 | `SinusoidDataSource` | Sinusoidal signals with controllable phase/frequency/delay | `ph0_a`, `ph0_b`, `frq_a`, `frq_b`, `pers`, `delay_a`, `delay_b`, `iterations`, `sampling_rate` |
 | `CoupledOscillatorDataSource` | Kuramoto model coupled oscillators | `n_oscillators`, `coupling_strength`, `natural_freqs`, `dt`, `duration`, `noise_std`, `sampling_rate` |
+| `BelousovZhabotinskyDataSource` | Belousov-Zhabotinsky (Oregonator) with sensor delay | `f`, `q`, `eps`, `dt`, `initial_values`, `iterations`, `variable`, `delay_steps`, `noise_std`, `sampling_rate`, `transient` |
 
 ## CLI Usage
 
@@ -93,12 +105,15 @@ synch-analysis coupled --coupling 0.8 --freqs 1.0 1.05 --duration 50 --output re
 
 # Parquet data
 synch-analysis parquet --file data.pqt --col-a Temp1 --col-b Temp2 --output results/
+
+# Belousov-Zhabotinsky (Oregonator model)
+synch-analysis bz --iterations 10000 --delay-steps 100 --noise 0.05 --output results/
 ```
 
 ### CLI Options
 
 ```
-synch-analysis [lorenz|sinusoid|coupled|parquet] [OPTIONS]
+synch-analysis [lorenz|sinusoid|coupled|parquet|bz] [OPTIONS]
 
 Common options:
   --output, -o        Output directory (default: results)
@@ -134,6 +149,18 @@ Parquet:
   --start, --end      Index range
   --window            Rolling window size (default: 60)
   --lag               Time lag between signals
+
+BZ:
+  --f                 Stoichiometric parameter (default: 1.0)
+  --q                 Small parameter (default: 0.05)
+  --eps               Time-scale separation parameter (default: 0.02)
+  --dt                Integration time step (default: 0.01)
+  --x0, --z0          Initial values (default: 0.1, 0.1)
+  --iterations        Number of integration steps (default: 10000)
+  --variable          Variable to extract: x|z (default: x)
+  --delay-steps       Sensor delay in time steps (default: 100)
+  --noise             Measurement noise std (default: 0.05)
+  --transient         Transient steps to discard (default: 2000)
 ```
 
 ## Project Structure

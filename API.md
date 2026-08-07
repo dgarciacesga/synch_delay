@@ -12,6 +12,7 @@ from synch_analysis import (
     LorenzDataSource,
     SinusoidDataSource,
     CoupledOscillatorDataSource,
+    BelousovZhabotinskyDataSource,
     SynchronizationAnalyzer,
     SynchronizationVisualizer,
     SynchronizationPipeline,
@@ -239,6 +240,53 @@ class CoupledOscillatorDataSource(DataSource):
 ```
 dφ_j/dt = ω_j + (K/N) Σ sin(φ_k - φ_j) + noise
 ```
+
+---
+
+### BelousovZhabotinskyDataSource
+
+```python
+class BelousovZhabotinskyDataSource(DataSource):
+    """Generate Belousov-Zhabotinsky oscillator time series using the Oregonator model."""
+    
+    def __init__(
+        self,
+        f: float = 1.0,
+        q: float = 0.05,
+        eps: float = 0.02,
+        dt: float = 0.01,
+        initial_values: Optional[List[float]] = None,
+        iterations: int = 10000,
+        variable: str = "x",
+        delay_steps: int = 100,
+        noise_std: float = 0.05,
+        sampling_rate: float = 100.0,
+        transient: int = 2000,
+    ):
+```
+
+**Parameters:**
+- `f`: Stoichiometric parameter (default: 1.0, must be > 0.5 for oscillation)
+- `q`: Small parameter (default: 0.05, typically 1e-4 to 0.1)
+- `eps`: Time-scale separation parameter (default: 0.02, typically 0.01-0.1)
+- `dt`: Integration time step (default: 0.01)
+- `initial_values`: Initial [x, z] values (default: [0.1, 0.1])
+- `iterations`: Number of integration steps (default: 10000)
+- `variable`: Which variable to extract ("x" or "z") (default: "x")
+- `delay_steps`: Sensor delay in time steps (default: 100). Creates delayed version of signal A
+- `noise_std`: Gaussian noise standard deviation (default: 0.05)
+- `sampling_rate`: Output sampling rate in Hz (default: 100.0)
+- `transient`: Number of initial steps to discard (default: 2000)
+
+**Model (Oregonator, 2-variable reduced form):**
+```
+ε(dx/dt) = x(1-x) - f·z·(x-q)/(x+q)
+dz/dt = x - z
+```
+
+Uses scipy's LSODA stiff ODE solver.
+
+**Reference:** Field, R.J., & Noyes, R.M. (1974). "Oscillations in Chemical Systems IV." J. Chem. Phys. 60, 1877-1884.
 
 ---
 
