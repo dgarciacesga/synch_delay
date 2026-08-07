@@ -585,8 +585,8 @@ pd.DataFrame([pipeline.get_stats()]).T.style.format("{:.6f}")
 
 ```bash
 # Open the notebooks from notebooks/ directory
-jupyter notebook notebooks/kuramoto_sync_analysis_T11_T12.ipynb
 jupyter notebook notebooks/kuramoto_jrp_analysis_T11_T12.ipynb
+jupyter notebook notebooks/kuramoto_jrp_output_T11_T12.ipynb
 ```
 
 These notebooks analyze synchronization between **FormacionMWEntT11TempPV** (MW inlet temperature T11) and **FormacionMWSalT12TempPV** (MW outlet temperature T12) from `../data/datos_ind.pqt` (relative to notebooks/).
@@ -639,25 +639,34 @@ print(f"Best Kuramoto lag: {best_kuramoto}s")
 print(f"Best JRP lag: {best_jrp}s")
 ```
 
-### Original Analysis (NIR Humidity / MW Humidity)
+### BZ Delayed Signal Analysis
 
 ```bash
-jupyter notebook notebooks/kuramoto_sync_analysis.ipynb
-jupyter notebook notebooks/kuramoto_sync_output.ipynb
-jupyter notebook notebooks/kuramoto_jrp_analysis.ipynb
-jupyter notebook notebooks/kuramoto_jrp_output.ipynb
+jupyter notebook notebooks/kuramoto_jrp_analysis_bz_delayed.ipynb
+jupyter notebook notebooks/kuramoto_jrp_output_bz_delayed.ipynb
 ```
 
-These use `FormacionNIRHumedadPV` and `Etapa2MWHumedadPV` from `../data/synch_analysis_clean.parquet`.
+These analyze synchronization between a BZ (Belousov-Zhabotinsky) signal and its delayed version using combined Kuramoto + JRP analysis.
 
-### General Synchronization Analysis (peso data)
+**Analysis pipeline:**
+1. **Hilbert transform** → Extract instantaneous phase
+2. **Kuramoto order parameter** → Measure phase synchronization R(t) ∈ [0,1]
+3. **Lag sweep** → Find optimal time delay
+4. **Joint Recurrence Plots** (JRP) → State-space synchronization (RR, DET, LAM)
 
-```bash
-jupyter notebook notebooks/synch_analysis.ipynb
-jupyter notebook notebooks/synch_analysis_output.ipynb
-```
+**Optimal lag criteria:**
+- **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and mean Kuramoto r (r_mean)
+- **JRP**: Combined DET × LAM × RR score, excluding extreme lags (±max_lag)
+- **Combined**: Arithmetic mean of both normalized scores
 
-These analyze `FormacionNIRHumedadPV` vs `Etapa2MWHumedadPV` from `../data/datos_peso_01_11_2021_07_11_2021.pqt` (1-7 Nov 2021).
+**Data:** Results saved to `../data/kuramoto_jrp_lag_sweep_bz_delayed.parquet` (from notebooks/ directory).
+
+**Figure settings:**
+All notebooks use publication-quality figure settings:
+- White background
+- No grid lines
+- High DPI (300) suitable for journal publication
+- Tight bounding box and minimal padding
 
 ### Lorenz Delayed Signal Analysis
 

@@ -149,21 +149,15 @@ synch_delay/
 │   ├── pipeline.py        # SynchronizationPipeline, batch comparison
 │   └── cli.py             # Command-line interface
 ├── notebooks/             # Example notebooks
-│   ├── lorenz_analysis.ipynb
-│   ├── sinusoid_analysis.ipynb
-│   ├── coupled_oscillators.ipynb
-│   ├── synch_analysis_unified.ipynb
-│   ├── kuramoto_sync_analysis_T11_T12.ipynb     # T11/T12 phase sync analysis
-│   ├── kuramoto_sync_output_T11_T12.ipynb       # T11/T12 executable output
+│   ├── synch_analysis_unified.ipynb            # Complete framework demo
 │   ├── kuramoto_jrp_analysis_T11_T12.ipynb      # T11/T12 combined Kuramoto+JRP
-│   ├── kuramoto_jrp_output_T11_T12.ipynb        # T11/T12 combined output
-│   ├── kuramoto_sync_analysis.ipynb             # Original NIR/MW humidity
-│   ├── kuramoto_sync_output.ipynb               # Original executable
-│   ├── kuramoto_jrp_analysis.ipynb              # Original combined
-│   └── kuramoto_jrp_output.ipynb                # Original combined output
+│   ├── kuramoto_jrp_output_T11_T12.ipynb        # T11/T12 output
+│   ├── kuramoto_jrp_analysis_bz_delayed.ipynb   # BZ delayed JRP analysis
+│   ├── kuramoto_jrp_output_bz_delayed.ipynb     # BZ delayed output
+│   ├── kuramoto_jrp_analysis_lorenz_delayed.ipynb # Lorenz delayed JRP analysis
+│   └── kuramoto_jrp_output_lorenz_delayed.ipynb # Lorenz delayed output
 ├── data/                  # Data files (Parquet, etc.)
 ├── results/               # Analysis outputs
-├── old/                   # Original notebooks (archived)
 ├── requirements.txt
 ├── pyproject.toml
 └── README.md
@@ -178,20 +172,11 @@ jupyter notebook notebooks/
 ```
 
 Available notebooks:
-- `lorenz_analysis.ipynb` - Lorenz attractor synchronization
-- `sinusoid_analysis.ipynb` - Sinusoidal signal analysis
-- `coupled_oscillators.ipynb` - Kuramoto model oscillators
 - `synch_analysis_unified.ipynb` - Complete framework demo
-- `synch_analysis.ipynb` - Industrial humidity sync analysis (NIR vs MW)
-- `synch_analysis_output.ipynb` - Executable output version
-- `kuramoto_sync_analysis.ipynb` - Phase sync: NIR Humidity / MW Humidity
-- `kuramoto_sync_output.ipynb` - Executable output version
-- `kuramoto_jrp_analysis.ipynb` - Combined Kuramoto + JRP analysis
-- `kuramoto_jrp_output.ipynb` - Executable output version
-- `kuramoto_sync_analysis_T11_T12.ipynb` - Phase sync: T11/T12 temperatures (MW inlet/outlet)
-- `kuramoto_sync_output_T11_T12.ipynb` - Executable output version
-- `kuramoto_jrp_analysis_T11_T12.ipynb` - Combined Kuramoto + JRP analysis
-- `kuramoto_jrp_output_T11_T12.ipynb` - Executable output version
+- `kuramoto_jrp_analysis_T11_T12.ipynb` - T11/T12 combined Kuramoto + JRP analysis
+- `kuramoto_jrp_output_T11_T12.ipynb` - Executable output (T11/T12)
+- `kuramoto_jrp_analysis_bz_delayed.ipynb` - BZ delayed JRP analysis
+- `kuramoto_jrp_output_bz_delayed.ipynb` - Executable output (BZ delayed)
 - `kuramoto_jrp_analysis_lorenz_delayed.ipynb` - Lorenz delayed signal analysis
 - `kuramoto_jrp_output_lorenz_delayed.ipynb` - Lorenz delayed output
 
