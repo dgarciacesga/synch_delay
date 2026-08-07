@@ -37,8 +37,12 @@ class ParquetDataSource(DataSource):
             self.index_end = len(df)
 
         # Apply rolling mean to smooth
-        series_a = df[self.column_a].iloc[self.index_start : self.index_end].rolling(self.window).mean()
-        series_b = df[self.column_b].iloc[self.index_start : self.index_end].rolling(self.window).mean()
+        series_a = (
+            df[self.column_a].iloc[self.index_start : self.index_end].rolling(self.window).mean()
+        )
+        series_b = (
+            df[self.column_b].iloc[self.index_start : self.index_end].rolling(self.window).mean()
+        )
 
         # Remove NaN from rolling
         series_a = series_a.dropna()
@@ -110,11 +114,15 @@ class LorenzDataSource(DataSource):
 
         # Create delayed version of signal_a if delay specified
         if self.delay_steps > 0:
-            signal_b = np.concatenate([np.full(self.delay_steps, np.nan), signal_a[:-self.delay_steps]])
-            signal_b = pd.Series(signal_b).interpolate(limit_direction='both').values
+            signal_b = np.concatenate(
+                [np.full(self.delay_steps, np.nan), signal_a[: -self.delay_steps]]
+            )
+            signal_b = pd.Series(signal_b).interpolate(limit_direction="both").values
         elif self.delay_steps < 0:
-            signal_b = np.concatenate([signal_a[-self.delay_steps:], np.full(-self.delay_steps, np.nan)])
-            signal_b = pd.Series(signal_b).interpolate(limit_direction='both').values
+            signal_b = np.concatenate(
+                [signal_a[-self.delay_steps :], np.full(-self.delay_steps, np.nan)]
+            )
+            signal_b = pd.Series(signal_b).interpolate(limit_direction="both").values
         else:
             signal_b = signal_a.copy()
 
@@ -249,8 +257,10 @@ class BelousovZhabotinskyDataSource(DataSource):
             return [dx, dz]
 
         sol = solve_ivp(
-            oregonator, [0, t_end], initial_values,
-            method='LSODA',
+            oregonator,
+            [0, t_end],
+            initial_values,
+            method="LSODA",
             dense_output=True,
         )
 
@@ -261,7 +271,7 @@ class BelousovZhabotinskyDataSource(DataSource):
 
         # Remove transient
         if self.transient > 0 and len(signal) > self.transient:
-            signal = signal[self.transient:]
+            signal = signal[self.transient :]
 
         return signal
 
@@ -269,11 +279,15 @@ class BelousovZhabotinskyDataSource(DataSource):
         signal_a = self._generate(self.initial_values)
 
         if self.delay_steps > 0:
-            signal_b = np.concatenate([np.full(self.delay_steps, np.nan), signal_a[:-self.delay_steps]])
-            signal_b = pd.Series(signal_b).interpolate(limit_direction='both').values
+            signal_b = np.concatenate(
+                [np.full(self.delay_steps, np.nan), signal_a[: -self.delay_steps]]
+            )
+            signal_b = pd.Series(signal_b).interpolate(limit_direction="both").values
         elif self.delay_steps < 0:
-            signal_b = np.concatenate([signal_a[-self.delay_steps:], np.full(-self.delay_steps, np.nan)])
-            signal_b = pd.Series(signal_b).interpolate(limit_direction='both').values
+            signal_b = np.concatenate(
+                [signal_a[-self.delay_steps :], np.full(-self.delay_steps, np.nan)]
+            )
+            signal_b = pd.Series(signal_b).interpolate(limit_direction="both").values
         else:
             signal_b = signal_a.copy()
 
@@ -338,8 +352,12 @@ class CoupledOscillatorDataSource(DataSource):
             phase_history[i] = phases
             # Kuramoto model
             for j in range(self.n_oscillators):
-                coupling = sum(np.sin(phases[k] - phases[j]) for k in range(self.n_oscillators) if j != k)
-                dphase = self.natural_freqs[j] + self.coupling_strength * coupling / (self.n_oscillators - 1)
+                coupling = sum(
+                    np.sin(phases[k] - phases[j]) for k in range(self.n_oscillators) if j != k
+                )
+                dphase = self.natural_freqs[j] + self.coupling_strength * coupling / (
+                    self.n_oscillators - 1
+                )
                 if self.noise_std > 0:
                     dphase += np.random.normal(0, self.noise_std)
                 phases[j] += dphase * self.dt

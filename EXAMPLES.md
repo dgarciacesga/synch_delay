@@ -197,6 +197,73 @@ coupled_5 = CoupledOscillatorDataSource(
 
 ---
 
+### Belousov-Zhabotinsky Oscillator (Oregonator Model)
+
+```python
+from synch_analysis import BelousovZhabotinskyDataSource, SynchronizationPipeline
+
+# Classic oscillatory regime with sensor delay
+bz = BelousovZhabotinskyDataSource(
+    f=1.0,
+    q=0.05,
+    eps=0.02,
+    dt=0.01,
+    initial_values=[0.1, 0.1],
+    iterations=10000,
+    variable="x",             # or "z"
+    delay_steps=100,          # Simulated sensor delay (1s at 100 Hz)
+    noise_std=0.05,           # Measurement noise
+    sampling_rate=100.0,
+    transient=2000,           # Discard initial transient
+)
+
+pipeline = SynchronizationPipeline(bz).run()
+pipeline.plot_dashboard()
+
+# Get statistics
+stats = pipeline.get_stats()
+print(f"Mean R: {stats['mean_R']:.4f}")
+print(f"Sync ratio: {stats['sync_ratio']:.2%}")
+```
+
+**Variants:**
+```python
+# No delay - identical signals (single run copied)
+bz_copy = BelousovZhabotinskyDataSource(
+    iterations=5000,
+    delay_steps=0,     # Creates copy of signal_a as signal_b
+    noise_std=0.0
+)
+
+# Different Oregonator parameters
+bz_strong = BelousovZhabotinskyDataSource(
+    f=2.0,             # Higher stoichiometric parameter
+    q=0.01,            # Smaller q
+    eps=0.01,          # Stronger time-scale separation
+    iterations=8000
+)
+
+# Extract z variable instead of x
+bz_z = BelousovZhabotinskyDataSource(
+    variable="z",
+    iterations=5000
+)
+
+# Delay detection: sweep delay to find optimal sync lag
+for delay in range(0, 300, 10):
+    bz = BelousovZhabotinskyDataSource(
+        iterations=3000,
+        delay_steps=delay,
+        noise_std=0.02,
+        transient=500
+    )
+    pipeline = SynchronizationPipeline(bz).run()
+    stats = pipeline.get_stats()
+    print(f"Delay {delay:3d}: Mean R = {stats['mean_R']:.4f}")
+```
+
+---
+
 ### Parquet Data (Industrial/Experimental)
 
 ```python
@@ -332,6 +399,7 @@ anim.save("phase_animation.gif", writer="pillow", fps=30)
 ```python
 from synch_analysis import (
     LorenzDataSource, SinusoidDataSource, CoupledOscillatorDataSource,
+    BelousovZhabotinskyDataSource,
     compare_data_sources
 )
 import numpy as np
@@ -344,6 +412,7 @@ sources = [
     SinusoidDataSource(frq_a=1.0, frq_b=1.05, pers=10),
     CoupledOscillatorDataSource(coupling_strength=0.5, natural_freqs=[1.0, 1.05]),
     CoupledOscillatorDataSource(coupling_strength=2.0, natural_freqs=[1.0, 1.05]),
+    BelousovZhabotinskyDataSource(iterations=3000, delay_steps=50, transient=500),
 ]
 
 labels = [
@@ -353,6 +422,7 @@ labels = [
     "Sinusoid (beat, 5% freq diff)",
     "Coupled (weak K=0.5)",
     "Coupled (strong K=2.0)",
+    "BZ (delay=50)",
 ]
 
 # Compare all sources
@@ -509,6 +579,9 @@ synch-analysis coupled --coupling 1.5 --freqs 1.0 1.05 --duration 50 --output re
 
 # Parquet data
 synch-analysis parquet --file data/sensors.pqt --col-a T1 --col-b T2 --window 30 --output results/parquet
+
+# Belousov-Zhabotinsky (Oregonator model)
+synch-analysis bz --iterations 10000 --delay-steps 100 --noise 0.05 --output results/bz --dashboard
 
 # JSON output for scripting
 synch-analysis lorenz --iterations 1000 --stats --format json > stats.json
