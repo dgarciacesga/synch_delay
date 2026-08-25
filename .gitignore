@@ -37,6 +37,7 @@ Thumbs.db
 
 # Project specific
 *.log
+data/*.pqt
 
 # Environment
 .env
