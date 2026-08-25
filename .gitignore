@@ -36,8 +36,8 @@ htmlcov/
 Thumbs.db
 
 # Project specific
+data/datos_ind.pqt
 *.log
-data/*.pqt
 
 # Environment
 .env
