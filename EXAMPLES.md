@@ -654,15 +654,15 @@ pd.DataFrame([pipeline.get_stats()]).T.style.format("{:.6f}")
 
 ## Industrial Data Notebooks (in `notebooks/`)
 
-### Phase Synchronization Analysis (T11/T12 Temperatures)
+### Phase Synchronization Analysis (varA/varB Temperatures)
 
 ```bash
 # Open the notebooks from notebooks/ directory
-jupyter notebook notebooks/kuramoto_jrp_analysis_T11_T12.ipynb
-jupyter notebook notebooks/kuramoto_jrp_output_T11_T12.ipynb
+jupyter notebook notebooks/kuramoto_jrp_analysis_varA_varB.ipynb
+jupyter notebook notebooks/kuramoto_jrp_output_varA_varB.ipynb
 ```
 
-These notebooks analyze synchronization between **FormacionMWEntT11TempPV** (MW inlet temperature T11) and **FormacionMWSalT12TempPV** (MW outlet temperature T12) from `../data/datos_ind.pqt` (relative to notebooks/).
+These notebooks analyze synchronization between **VarA** (MW inlet temperature) and **VarB** (MW outlet temperature) from `../data/datos_ind.pqt` (relative to notebooks/).
 
 **Analysis pipeline:**
 1. **Hilbert transform** → Extract instantaneous phase
@@ -686,12 +686,12 @@ These notebooks analyze synchronization between **FormacionMWEntT11TempPV** (MW 
 - **Combined**: Arithmetic mean of both normalized scores
 
 **Real lag (physical transit time):**
-Each notebook computes the physical transit time between T11 and T12 at the end:
+Each notebook computes the physical transit time between VarA and VarB at the end:
 ```python
-lag = int(18600 / df['FormacionVelocidad'].loc[start_time:end_time].mean())
+lag = int(18600 / df['Velocidad'].loc[start_time:end_time].mean())
 print(f'Real lag (|distance/speed|): {lag}s ({lag/60:.1f} min)')
 ```
-This uses the belt/conveyor distance (18600 units) divided by the average `FormacionVelocidad` in the analysis window.
+This uses the belt/conveyor distance (18600 units) divided by the average `Velocidad` in the analysis window.
 
 **Figure settings:**
 All notebooks use publication-quality figure settings:
@@ -702,8 +702,8 @@ All notebooks use publication-quality figure settings:
 
 ```python
 # Example: Load saved results (from notebooks/ directory)
-results = pd.read_parquet('../data/kuramoto_lag_sweep_T11_T12.parquet')
-jrp_results = pd.read_parquet('../data/kuramoto_jrp_lag_sweep_T11_T12.parquet')
+results = pd.read_parquet('../data/kuramoto_lag_sweep_varA_varB.parquet')
+jrp_results = pd.read_parquet('../data/kuramoto_jrp_lag_sweep_varA_varB.parquet')
 
 # Find best lag (using updated criteria)
 best_kuramoto = results.loc[results['kuramoto_score'].idxmax(), 'lag']
