@@ -245,6 +245,8 @@ def generate_workflow_figure(signal_a, signal_b, name_a, name_b, sampling_rate, 
             phi1 = phi1[trim:-trim]
             phi2 = phi2[trim:-trim]
             r = r[trim:-trim]
+            if r_smooth is not None:
+                r_smooth = r_smooth[trim:-trim]
             time = time[trim:-trim]
     
     # ─── Create 6-panel figure ───
@@ -399,7 +401,7 @@ generate_workflow_figure(sig_a_norm, sig_b_norm, 'Sensor A', 'Sensor B', 1.0, 0,
         '/Users/david/Documents/CESGA/synch_paper/figures/industrial_workflow_before.png',
         smooth_window=5, rp_rate=0.1, order_param_smooth_window=20, time_axis=time_axis, trim_edges=60)
 
-    generate_workflow_figure(sig_a_norm, sig_b_norm, 'Sensor A', 'Sensor B', 1.0, 90,
+generate_workflow_figure(sig_a_norm, sig_b_norm, 'Sensor A', 'Sensor B', 1.0, 90,
         'Industrial measurements: after alignment at detected 90 s lag',
         '/Users/david/Documents/CESGA/synch_paper/figures/industrial_workflow_after.png',
         smooth_window=5, rp_rate=0.1, order_param_smooth_window=20, time_axis=time_axis, trim_edges=60)
