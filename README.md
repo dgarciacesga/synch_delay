@@ -177,8 +177,8 @@ synch_delay/
 │   └── cli.py             # Command-line interface
 ├── notebooks/             # Example notebooks
 │   ├── synch_analysis_unified.ipynb            # Complete framework demo
-│   ├── kuramoto_jrp_analysis_T11_T12.ipynb      # T11/T12 combined Kuramoto+JRP
-│   ├── kuramoto_jrp_output_T11_T12.ipynb        # T11/T12 output
+│   ├── kuramoto_jrp_analysis_varA_varB.ipynb      # varA/varB combined Kuramoto+JRP
+│   ├── kuramoto_jrp_output_varA_varB.ipynb        # varA/varB output
 │   ├── kuramoto_jrp_analysis_bz_delayed.ipynb   # BZ delayed JRP analysis
 │   ├── kuramoto_jrp_output_bz_delayed.ipynb     # BZ delayed output
 │   ├── kuramoto_jrp_analysis_lorenz_delayed.ipynb # Lorenz delayed JRP analysis
@@ -200,8 +200,8 @@ jupyter notebook notebooks/
 
 Available notebooks:
 - `synch_analysis_unified.ipynb` - Complete framework demo
-- `kuramoto_jrp_analysis_T11_T12.ipynb` - T11/T12 combined Kuramoto + JRP analysis
-- `kuramoto_jrp_output_T11_T12.ipynb` - Executable output (T11/T12)
+- `kuramoto_jrp_analysis_varA_varB.ipynb` - varA/varB combined Kuramoto + JRP analysis
+- `kuramoto_jrp_output_varA_varB.ipynb` - Executable output (varA/varB)
 - `kuramoto_jrp_analysis_bz_delayed.ipynb` - BZ delayed JRP analysis
 - `kuramoto_jrp_output_bz_delayed.ipynb` - Executable output (BZ delayed)
 - `kuramoto_jrp_analysis_lorenz_delayed.ipynb` - Lorenz delayed signal analysis

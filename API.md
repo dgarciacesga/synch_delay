@@ -107,15 +107,15 @@ class ParquetDataSource(DataSource):
 5. Center signals (remove mean)
 6. Symmetrize for Hilbert transform (mirror + concatenate)
 
-**Example: T11/T12 Temperatures from datos_ind.pqt**
+**Example: varA/varB Temperatures from datos_ind.pqt**
 ```python
 from synch_analysis import ParquetDataSource, SynchronizationPipeline
 
-# MW Inlet (T11) vs Outlet (T12) temperatures
+# varA (Inlet) vs varB (Outlet) temperatures
 parquet = ParquetDataSource(
     file_path="data/datos_ind.pqt",
-    column_a="FormacionMWEntT11TempPV",
-    column_b="FormacionMWSalT12TempPV",
+    column_a="VarA",
+    column_b="VarB",
     index_start=0,
     index_end=3600,  # 1 hour at 1 Hz
     window=10,
@@ -130,8 +130,8 @@ pipeline.plot_dashboard()
 for lag in range(-600, 601, 10):
     p = ParquetDataSource(
         file_path="data/datos_ind.pqt",
-        column_a="FormacionMWEntT11TempPV",
-        column_b="FormacionMWSalT12TempPV",
+        column_a="VarA",
+        column_b="VarB",
         index_start=0, index_end=3600,
         window=10, lag=lag, sampling_rate=1.0
     )
