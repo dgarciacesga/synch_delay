@@ -151,12 +151,14 @@ def smooth_signal(x, window=5):
 # ─── Workflow figure generator ───
 def generate_workflow_figure(signal_a, signal_b, name_a, name_b, sampling_rate, lag, title_suffix, output_path,
                               normalize_func=normalize_zero_centered, smooth_window=5, rp_rate=0.05,
-                              max_time_units=None, rp_max_time_units=None, kuramoto_smooth_window=1, time_axis=None, trim_edges=0):
+                              max_time_units=None, rp_max_time_units=None, kuramoto_smooth_window=1,
+                              order_param_smooth_window=1, time_axis=None, trim_edges=0):
     """Generate 6-panel workflow figure with colormapped phase state space.
     
     Args:
         smooth_window: smoothing window for RP analysis
         kuramoto_smooth_window: smoothing window for Kuramoto/phase analysis (1=no smoothing)
+        order_param_smooth_window: smoothing window for Kuramoto order parameter R(t) (1=no smoothing)
         time_axis: optional array of time values (e.g., actual timestamps)
         trim_edges: number of samples to discard from start and end to avoid edge effects
         max_time_units: max time units for time series panels (a, b, c)
@@ -210,6 +212,12 @@ def generate_workflow_figure(signal_a, signal_b, name_a, name_b, sampling_rate, 
     phi1 = get_phase(s1_kuramoto)
     phi2 = get_phase(s2_kuramoto)
     r = kuramoto_order_param(phi1, phi2)
+    
+    # Smoothed order parameter
+    if order_param_smooth_window > 1:
+        r_smooth = smooth_signal(r, window=order_param_smooth_window)
+    else:
+        r_smooth = None
     
     # Recurrence plots - use rp_max_time_units truncated signals
     m, tau, rate = 3, 1, rp_rate
@@ -267,7 +275,9 @@ def generate_workflow_figure(signal_a, signal_b, name_a, name_b, sampling_rate, 
     
     # (c) Kuramoto order parameter
     ax3 = fig.add_subplot(gs[0, 2])
-    ax3.plot(time, r, 'b-', linewidth=0.8, alpha=0.7)
+    ax3.plot(time, r, 'b-', linewidth=0.8, alpha=0.3, label='R(t) raw')
+    if r_smooth is not None:
+        ax3.plot(time, r_smooth, 'b-', linewidth=1.2, alpha=0.9, label=f'R(t) smoothed (w={order_param_smooth_window})')
     ax3.axhline(y=0.7, color='g', linestyle='--', alpha=0.6, label='Sync threshold (0.7)')
     ax3.set_xlabel('Time')
     ax3.set_ylabel('R(t)')
@@ -385,13 +395,13 @@ time_axis = df_hour.index.values
 # Pass raw (normalized, unsmoothed) signals; function will smooth internally
 # For Figure 6 (before): NO shift applied - show raw signals as-is with lag=0
 generate_workflow_figure(sig_a_norm, sig_b_norm, 'Sensor A', 'Sensor B', 1.0, 0,
-    'Industrial measurements: raw signals (no alignment applied)',
-    '/Users/david/Documents/CESGA/synch_paper/figures/industrial_workflow_before.png',
-    smooth_window=5, rp_rate=0.1, time_axis=time_axis, trim_edges=60)
+        'Industrial measurements: raw signals (no alignment applied)',
+        '/Users/david/Documents/CESGA/synch_paper/figures/industrial_workflow_before.png',
+        smooth_window=5, rp_rate=0.1, order_param_smooth_window=20, time_axis=time_axis, trim_edges=60)
 
-generate_workflow_figure(sig_a_norm, sig_b_norm, 'Sensor A', 'Sensor B', 1.0, 90,
-    'Industrial measurements: after alignment at detected 90 s lag',
-    '/Users/david/Documents/CESGA/synch_paper/figures/industrial_workflow_after.png',
-    smooth_window=5, rp_rate=0.1, time_axis=time_axis, trim_edges=60)
+    generate_workflow_figure(sig_a_norm, sig_b_norm, 'Sensor A', 'Sensor B', 1.0, 90,
+        'Industrial measurements: after alignment at detected 90 s lag',
+        '/Users/david/Documents/CESGA/synch_paper/figures/industrial_workflow_after.png',
+        smooth_window=5, rp_rate=0.1, order_param_smooth_window=20, time_axis=time_axis, trim_edges=60)
 
 print("\nAll workflow figures generated!")
