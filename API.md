@@ -107,11 +107,11 @@ class ParquetDataSource(DataSource):
 5. Center signals (remove mean)
 6. Symmetrize for Hilbert transform (mirror + concatenate)
 
-**Example: varA/varB Temperatures from datos_ind.pqt**
+**Example: varA/varB from datos_ind.pqt**
 ```python
 from synch_analysis import ParquetDataSource, SynchronizationPipeline
 
-# varA (Inlet) vs varB (Outlet) temperatures
+# varA (Inlet) vs varB (Outlet) 
 parquet = ParquetDataSource(
     file_path="data/datos_ind.pqt",
     column_a="VarA",
