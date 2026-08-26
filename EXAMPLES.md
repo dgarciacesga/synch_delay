@@ -271,9 +271,9 @@ from synch_analysis import ParquetDataSource, SynchronizationPipeline
 
 # Industrial sensor data
 parquet = ParquetDataSource(
-    file_path="data/temperature_sensors.parquet",
-    column_a="T_sensor_01",
-    column_b="T_sensor_02",
+    file_path="data/sensors.parquet",
+    column_a="sensor_A",
+    column_b="sensor_B",
     index_start=0,
     index_end=10000,
     window=60,              # 60-sample rolling mean
@@ -578,7 +578,7 @@ synch-analysis sinusoid --delay-b 3 --pers 5 --output results/sinusoid --dashboa
 synch-analysis coupled --coupling 1.5 --freqs 1.0 1.05 --duration 50 --output results/coupled
 
 # Parquet data
-synch-analysis parquet --file data/sensors.pqt --col-a T1 --col-b T2 --window 30 --output results/parquet
+synch-analysis parquet --file data/sensors.pqt --col-a varA --col-b varB --window 30 --output results/parquet
 
 # Belousov-Zhabotinsky (Oregonator model)
 synch-analysis bz --iterations 10000 --delay-steps 100 --noise 0.05 --output results/bz --dashboard
@@ -662,7 +662,7 @@ jupyter notebook notebooks/kuramoto_jrp_analysis_varA_varB.ipynb
 jupyter notebook notebooks/kuramoto_jrp_output_varA_varB.ipynb
 ```
 
-These notebooks analyze synchronization between **VarA** (MW inlet temperature) and **VarB** (MW outlet temperature) from `../data/datos_ind.pqt` (relative to notebooks/).
+These notebooks analyze synchronization between **VarA** and **VarB** from `../data/datos_ind.pqt` (relative to notebooks/).
 
 **Analysis pipeline:**
 1. **Hilbert transform** → Extract instantaneous phase
