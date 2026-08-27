@@ -63,7 +63,7 @@ SynchronizationPipeline(coupled).run().plot_dashboard()
 
 # Industrial data from Parquet
 from synch_analysis import ParquetDataSource
-parquet = ParquetDataSource("data/sensor.pqt", "Temp_T11", "Temp_T12")
+parquet = ParquetDataSource("data/sensor.pqt", "varA", "varB")
 SynchronizationPipeline(parquet).run().plot_dashboard()
 
 # Belousov-Zhabotinsky oscillator (Oregonator model) with sensor delay
@@ -104,7 +104,7 @@ synch-analysis sinusoid --delay-b 3 --output results/
 synch-analysis coupled --coupling 0.8 --freqs 1.0 1.05 --duration 50 --output results/
 
 # Parquet data
-synch-analysis parquet --file data.pqt --col-a Temp1 --col-b Temp2 --output results/
+synch-analysis parquet --file data.pqt --col-a varA --col-b varB --output results/
 
 # Belousov-Zhabotinsky (Oregonator model)
 synch-analysis bz --iterations 10000 --delay-steps 100 --noise 0.05 --output results/
