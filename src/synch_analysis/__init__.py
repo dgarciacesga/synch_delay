@@ -22,7 +22,19 @@ from .sources import (
 )
 from .analyzer import SynchronizationAnalyzer
 from .visualizer import SynchronizationVisualizer
-from .pipeline import SynchronizationPipeline, compare_data_sources, export_results
+from .pipeline import (
+    SynchronizationPipeline,
+    DelayCharacterizationPipeline,
+    compare_data_sources,
+    export_results,
+)
+from .jrp import (
+    lag_sweep_kuramoto,
+    lag_sweep_jrp,
+    compute_scores,
+    find_optimal_lags,
+    compute_jrp_metrics,
+)
 
 __version__ = "1.0.0"
 __all__ = [
@@ -36,6 +48,12 @@ __all__ = [
     "SynchronizationAnalyzer",
     "SynchronizationVisualizer",
     "SynchronizationPipeline",
+    "DelayCharacterizationPipeline",
     "compare_data_sources",
     "export_results",
+    "lag_sweep_kuramoto",
+    "lag_sweep_jrp",
+    "compute_scores",
+    "find_optimal_lags",
+    "compute_jrp_metrics",
 ]
