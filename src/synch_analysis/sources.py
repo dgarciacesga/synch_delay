@@ -1,6 +1,6 @@
 """Data source implementations for different signal types."""
 
-from typing import Optional, List
+from typing import Optional, List, Union
 import numpy as np
 import pandas as pd
 
@@ -15,8 +15,8 @@ class ParquetDataSource(DataSource):
         file_path: str,
         column_a: str,
         column_b: str,
-        index_start: int = 0,
-        index_end: Optional[int] = None,
+        index_start: Optional[Union[int, str]] = 0,
+        index_end: Optional[Union[int, str]] = None,
         window: int = 60,
         lag: Optional[int] = None,
         sampling_rate: float = 1.0,
@@ -33,16 +33,38 @@ class ParquetDataSource(DataSource):
     def load(self) -> SignalPair:
         df = pd.read_parquet(self.file_path)
 
-        if self.index_end is None:
-            self.index_end = len(df)
+        # If index is not datetime but there's a datetime column, use it as index for slicing
+        if self.index_start is not None and isinstance(self.index_start, str):
+            if not pd.api.types.is_datetime64_any_dtype(df.index):
+                # Try to find a datetime column to set as index
+                datetime_cols = df.select_dtypes(include=['datetime64']).columns
+                if len(datetime_cols) > 0:
+                    # Use the first datetime column as index
+                    df = df.set_index(datetime_cols[0])
+                else:
+                    # Try to convert index to datetime as fallback
+                    df = df.copy()
+                    df.index = pd.to_datetime(df.index)
 
-        # Apply rolling mean to smooth
-        series_a = (
-            df[self.column_a].iloc[self.index_start : self.index_end].rolling(self.window).mean()
-        )
-        series_b = (
-            df[self.column_b].iloc[self.index_start : self.index_end].rolling(self.window).mean()
-        )
+            # Use .loc for label-based slicing (timestamps)
+            df_sliced = df.loc[self.index_start : self.index_end] if self.index_end else df.loc[self.index_start:]
+        else:
+            # Use .iloc for positional slicing (integers)
+            start_idx = self.index_start if self.index_start is not None else 0
+            end_idx = self.index_end if self.index_end is not None else len(df)
+            df_sliced = df.iloc[start_idx : end_idx]
+
+        if df_sliced.empty:
+            raise ValueError(f"The sliced dataframe is empty. Check if the index range [{self.index_start}, {self.index_end}] contains data in {self.file_path}")
+
+        # Get raw signals (no smoothing - let the pipeline handle it)
+        series_a = df_sliced[self.column_a].astype(float)
+        series_b = df_sliced[self.column_b].astype(float)
+
+        # Apply rolling mean to smooth ONLY if window > 1 (for backward compatibility)
+        if self.window > 1:
+            series_a = series_a.rolling(self.window).mean()
+            series_b = series_b.rolling(self.window).mean()
 
         # Remove NaN from rolling
         series_a = series_a.dropna()
@@ -56,10 +78,6 @@ class ParquetDataSource(DataSource):
         # Center signals (remove mean)
         signal_a = (series_a - series_a.mean()).values
         signal_b = (series_b - series_b.mean()).values
-
-        # Symmetrize for Hilbert transform
-        signal_a = np.concatenate((signal_a[::-1], signal_a))
-        signal_b = np.concatenate((signal_b[::-1], signal_b))
 
         return SignalPair(
             signal_a=signal_a,
@@ -110,41 +128,43 @@ class LorenzDataSource(DataSource):
         return np.array({"x": x, "y": y, "z": z}[self.variable])
 
     def load(self) -> SignalPair:
-        signal_a = self._generate(self.initial_values)
+        signal_a_raw = self._generate(self.initial_values)
 
         # Create delayed version of signal_a if delay specified
         if self.delay_steps > 0:
-            signal_b = np.concatenate(
-                [np.full(self.delay_steps, np.nan), signal_a[: -self.delay_steps]]
+            signal_a = np.concatenate(
+                [np.full(self.delay_steps, np.nan), signal_a_raw[: -self.delay_steps]]
             )
-            signal_b = pd.Series(signal_b).interpolate(limit_direction="both").values
+            signal_a = pd.Series(signal_a).interpolate(limit_direction="both").values
         elif self.delay_steps < 0:
-            signal_b = np.concatenate(
-                [signal_a[-self.delay_steps :], np.full(-self.delay_steps, np.nan)]
+            signal_a = np.concatenate(
+                [signal_a_raw[-self.delay_steps :], np.full(-self.delay_steps, np.nan)]
             )
-            signal_b = pd.Series(signal_b).interpolate(limit_direction="both").values
+            signal_a = pd.Series(signal_a).interpolate(limit_direction="both").values
         else:
-            signal_b = signal_a.copy()
+            signal_a = signal_a_raw.copy()
+
+        signal_b = signal_a_raw.copy()
 
         # Add optional noise to delayed signal
         if self.noise_std > 0:
-            signal_b = signal_b.copy()
-            signal_b += np.random.normal(0, self.noise_std, len(signal_b))
+            signal_a = signal_a.copy()
+            signal_a += np.random.normal(0, self.noise_std, len(signal_a))
 
         # Center signals
         signal_a = signal_a - np.mean(signal_a)
         signal_b = signal_b - np.mean(signal_b)
 
         if self.delay_steps != 0:
-            name_b = f"Lorenz {self.variable} (delayed by {self.delay_steps} steps)"
+            name_a = f"Lorenz {self.variable} (delayed by {self.delay_steps} steps)"
         else:
-            name_b = f"Lorenz {self.variable} (IC2)"
+            name_a = f"Lorenz {self.variable} (IC1)"
 
         return SignalPair(
             signal_a=signal_a,
             signal_b=signal_b,
-            name_a=f"Lorenz {self.variable} (source)",
-            name_b=name_b,
+            name_a=name_a,
+            name_b=f"Lorenz {self.variable} (source)",
             sampling_rate=self.sampling_rate,
         )
 
@@ -277,20 +297,22 @@ class BelousovZhabotinskyDataSource(DataSource):
         return signal
 
     def load(self) -> SignalPair:
-        signal_a = self._generate(self.initial_values)
+        signal_a_raw = self._generate(self.initial_values)
 
         if self.delay_steps > 0:
-            signal_b = np.concatenate(
-                [np.full(self.delay_steps, np.nan), signal_a[: -self.delay_steps]]
+            signal_a = np.concatenate(
+                [np.full(self.delay_steps, np.nan), signal_a_raw[: -self.delay_steps]]
             )
-            signal_b = pd.Series(signal_b).interpolate(limit_direction="both").values
+            signal_a = pd.Series(signal_a).interpolate(limit_direction="both").values
         elif self.delay_steps < 0:
-            signal_b = np.concatenate(
-                [signal_a[-self.delay_steps :], np.full(-self.delay_steps, np.nan)]
+            signal_a = np.concatenate(
+                [signal_a_raw[-self.delay_steps :], np.full(-self.delay_steps, np.nan)]
             )
-            signal_b = pd.Series(signal_b).interpolate(limit_direction="both").values
+            signal_a = pd.Series(signal_a).interpolate(limit_direction="both").values
         else:
-            signal_b = signal_a.copy()
+            signal_a = signal_a_raw.copy()
+
+        signal_b = signal_a_raw.copy()
 
         # Add noise to BOTH signals
         if self.noise_std > 0:
@@ -302,15 +324,15 @@ class BelousovZhabotinskyDataSource(DataSource):
         signal_b = signal_b - np.mean(signal_b)
 
         if self.delay_steps != 0:
-            name_b = f"BZ {self.variable} (delayed by {self.delay_steps} steps)"
+            name_a = f"BZ {self.variable} (delayed by {self.delay_steps} steps)"
         else:
-            name_b = f"BZ {self.variable} (run 2)"
+            name_a = f"BZ {self.variable} (run 1)"
 
         return SignalPair(
             signal_a=signal_a,
             signal_b=signal_b,
-            name_a=f"BZ {self.variable} (source)",
-            name_b=name_b,
+            name_a=name_a,
+            name_b=f"BZ {self.variable} (source)",
             sampling_rate=self.sampling_rate,
         )
 

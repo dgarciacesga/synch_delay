@@ -1,0 +1,27 @@
+Delay Characterization Summary
+==============================
+
+Data source: Parquet: ../data/datos_ind.pqt [VarA vs VarB]
+Sampling rate: 1.0 Hz
+Signal A: VarA
+Signal B: VarB
+Samples: 1199
+Lag range: ±500 steps (lag step: 5)
+
+Optimal Lags:
+  Kuramoto: 90 steps (90.000s)
+  JRP:      90 steps (90.000s)
+  Combined: 90 steps (90.000s)
+
+Kuramoto at best lag:
+  r_mean: 0.8377
+  frac_above_07: 0.8157
+  max_sustained_sec: 74.000s
+  kuramoto_score: 0.9941
+
+JRP at best lag:
+  RR: 0.1231
+  DET: 0.9736
+  LAM: 0.9836
+  jrp_score: 1.0000
+

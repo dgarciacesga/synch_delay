@@ -19,7 +19,7 @@ Technical architecture and design decisions for `synch_analysis`.
 │  │ • Sinusoid   │    │   (ABC)      │    │ • Phase Difference           │  │
 │  │ • Coupled    │    └──────────────┘    │ • Sliding Window             │  │
 │  │ • BZ (Oregon.)│                       │ • Summary Statistics         │  │
-│  └──────────────┘                         │ • Summary Statistics         │  │
+│  └──────────────┘                         │                              │  │
 │                                           └──────────────┬───────────────┘  │
 │                                                          │                  │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┴──────────────┐  │
@@ -29,7 +29,13 @@ Technical architecture and design decisions for `synch_analysis`.
 │  │ • compare()  │    │ • Animations │    └──────────────────────────────┘  │
 │  │ • export()   │    │ • Phase plots│                                     │  │
 │  └──────────────┘    └──────────────┘                                     │  │
-│         │                    │                                            │  │
+│         │                                                                 │
+│         ▼                                                                 │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │                  DelayCharacterizationPipeline                      │  │
+│  │  (Lag sweep orchestration via Kuramoto + Joint Recurrence Plots)    │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                           │
 │         └────────────────────┴────────────────────────────────────────────┘  │
 │                                      │                                        │
 │                    ┌─────────────────┼─────────────────┐                     │
@@ -41,6 +47,7 @@ Technical architecture and design decisions for `synch_analysis`.
 │             └──────────┘      └──────────┘      └──────────┘                │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
+
 ```
 
 ---
@@ -53,7 +60,8 @@ synch_analysis/
 ├── sources.py       # ← core.py
 ├── analyzer.py      # ← core.py, scipy.signal, numpy, pandas
 ├── visualizer.py    # ← analyzer.py, core.py, matplotlib
-├── pipeline.py      # ← sources.py, analyzer.py, visualizer.py
+├── pipeline.py      # ← sources.py, analyzer.py, visualizer.py, jrp.py
+├── jrp.py           # ← core.py, scipy.spatial.distance, scipy.ndimage, numpy, pandas
 └── cli.py           # ← pipeline.py, sources.py
 ```
 
@@ -70,6 +78,10 @@ core.py (base)
     │             └── pipeline.py (orchestration)
     │                   │
     │                   └── cli.py (command line)
+    │
+    └── jrp.py (JRP computations)
+              │
+              └── pipeline.py (DelayCharacterizationPipeline)
 ```
 
 ---
@@ -128,24 +140,23 @@ class DataSource(ABC):
 ```python
 def load(self) -> SignalPair:
     df = pd.read_parquet(self.file_path)
-    # 1. Slice rows
-    # 2. Rolling mean (window)
+    # 1. Slice rows (positional or timestamp-based)
+    # 2. Rolling mean (window > 1)
     # 3. Drop NaN
     # 4. Apply lag
-    # 5. Center (remove mean)
-    # 6. Symmetrize for Hilbert
-    signal_a = np.concatenate((signal_a[::-1], signal_a))
+    # 4. Center (remove mean)
+    # (Symmetrization removed - handled by analyzer if needed)
 ```
 
 **Processing pipeline:**
-1. **Slice**: `index_start:index_end`
-2. **Smooth**: `rolling(window).mean()`
-3. **Clean**: `dropna()`
-4. **Lag**: Shift A forward, B backward
-5. **Center**: Subtract mean
-6. **Symmetrize**: Mirror + concatenate
+1. **Slice**: `index_start:index_end` (supports both int positions and str timestamps)
+2. **Auto-detect datetime**: If timestamp slicing and index not datetime, finds datetime column
+3. **Smooth**: `rolling(window).mean()` (only if window > 1)
+4. **Clean**: `dropna()`
+5. **Lag**: Shift A forward, B backward
+6. **Center**: Subtract mean
 
-**Symmetrization rationale:** Reduces Hilbert transform edge effects by making signal symmetric at boundaries.
+**Timestamp slicing:** Supports both positional indices (int) and timestamp strings (str). When timestamps are provided, automatically detects datetime columns and sets index.
 
 ---
 
@@ -167,6 +178,8 @@ def _generate(self, initial_values: List[float]) -> np.ndarray:
 **Integration:** Simple Euler method (sufficient for analysis purposes).
 
 **Variables:** Selectable "x", "y", or "z" component.
+
+**Lag Convention:** Positive `delay_steps` creates delayed version of signal A. Pipeline finds optimal lag = -delay_steps to align signals.
 
 ---
 
@@ -227,6 +240,8 @@ def _generate(self, initial_values: List[float]) -> np.ndarray:
 
 **Variables:** Selectable "x" or "z" component (2-variable reduced Oregonator).
 
+**Lag Convention:** Positive `delay_steps` creates delayed version of signal A. Pipeline finds optimal lag = -delay_steps to align signals.
+
 ---
 
 ## Analysis Engine (`analyzer.py`)
@@ -276,6 +291,29 @@ Phase difference:
 ```
 
 **Sliding window:** Uses `pandas.Series.rolling().mean()` for efficiency.
+
+---
+
+## Joint Recurrence Plots (`jrp.py`)
+
+### Core Functions
+
+- `embed_time_series(x, m, tau)`: Time-delay embedding
+- `recurrence_plot(x, threshold=None, rate=0.05)`: Single RP
+- `joint_recurrence_plot(rp1, rp2)`: JRP = RP1 AND RP2
+- `jrp_rqa_metrics(jrp)`: RQA metrics (RR, DET, LAM, max_diag, max_vert)
+
+### Lag Sweep Functions
+
+- `lag_sweep_kuramoto()`: Kuramoto order parameter for each lag
+- `lag_sweep_jrp()`: JRP metrics for each lag
+- `compute_scores()`: Normalized combined scoring
+- `find_optimal_lags()`: Optimal lag identification
+
+**Scoring criteria:**
+- **Kuramoto**: normalized(frac_above_07) × normalized(r_mean)
+- **JRP**: normalized(RR) only (excluding extreme lags)
+- **Combined**: Arithmetic mean of both normalized scores
 
 ---
 
@@ -359,11 +397,34 @@ class SynchronizationPipeline:
 
 ---
 
+### DelayCharacterizationPipeline
+
+**Purpose:** Automates the process of finding the optimal time lag between two signals.
+
+**Workflow:**
+1. **Lag Sweep**: Iterates through a range of lags from `-max_lag` to `+max_lag`.
+2. **Kuramoto Sweep**: Computes mean order parameter R and synchronization metrics for each lag.
+3. **JRP Sweep**: Computes Joint Recurrence Plot metrics (RR, DET, LAM) for each lag.
+4. **Scoring**: Normalizes and combines both methods into a single `combined_score`.
+5. **Optimization**: Identifies the lag that maximizes the scores.
+
+**Key Methods:**
+- `run()`: Executes the full sweep and scoring process.
+- `get_results()`: Returns a DataFrame with the full lag sweep.
+- `get_optimal_lags()`: Returns the best lags for Kuramoto, JRP, and Combined.
+- `plot_kuramoto()`, `plot_jrp()`, `plot_combined()`: Visualizes the score curves.
+- `export_results()`: Saves results to Parquet, PNGs, and a summary text file.
+
+**Plot Methods:** All accept `true_delay_sec` parameter to mark true delay on plots.
+
+---
+
 ### compare_data_sources
 
 ```python
 def compare_data_sources(sources: List[DataSource], 
                          labels: Optional[List[str]] = None) -> pd.DataFrame:
+
     results = []
     for i, source in enumerate(sources):
         label = labels[i] if labels else source.get_description()
@@ -418,7 +479,7 @@ main()
 ```
 
 **Argument structure:**
-- Positional: `type` (lorenz|sinusoid|coupled|parquet)
+- Positional: `type` (lorenz|sinusoid|coupled|parquet|bz|delay)
 - Common: `--output`, `--dashboard`, `--stats`, `--format`
 - Type-specific: Grouped by source type
 
@@ -482,6 +543,7 @@ tests/
 ├── test_core.py          # SignalPair, DataSource ABC
 ├── test_sources.py       # Each DataSource implementation
 ├── test_analyzer.py      # Hilbert, order parameter, stats
+├── test_jrp.py           # JRP functions
 ├── test_visualizer.py    # Plot creation (mock matplotlib)
 ├── test_pipeline.py      # Pipeline orchestration
 └── test_cli.py           # CLI argument parsing
@@ -492,10 +554,12 @@ tests/
 | Component | Tests |
 |-----------|-------|
 | SignalPair | Equal length validation, time generation |
-| ParquetDataSource | Rolling window, lag, symmetrization |
-| LorenzDataSource | Parameter variations, variable selection |
+| ParquetDataSource | Rolling window, lag, timestamp slicing |
+| LorenzDataSource | Parameter variations, variable selection, lag convention |
+| BZDataSource | Parameter variations, transient removal, lag convention |
 | Analyzer | Hilbert output shape, R ∈ [0,1], phase diff wrapping |
-| Pipeline | run() chain, export file creation |
+| JRP | Embedding, recurrence plot, lag sweep, scoring |
+| Pipeline | run() chain, export file creation, optimal lags |
 | CLI | All subcommands, help output |
 
 ---
@@ -509,6 +573,8 @@ tests/
 | Hilbert transform | O(N log N) | FFT-based (scipy) |
 | Order parameter | O(N) | Vectorized numpy |
 | Sliding window | O(N × W) | Pandas rolling |
+| JRP embedding | O(N × m) | m = embedding dim |
+| JRP recurrence | O(N²) | Distance matrix |
 | Visualization | O(N) | Matplotlib rendering |
 
 ### Memory Usage
@@ -517,9 +583,11 @@ tests/
 - **Hilbert:** 2 × N × 16 bytes (complex128)
 - **Phases:** 2 × N × 8 bytes
 - **Order parameter:** N × 8 bytes
-- **Total:** ~80 bytes per sample
+- **JRP distance matrix:** N² × 8 bytes
+- **Total (analyzer):** ~80 bytes per sample
+- **Total (JRP):** ~8 bytes × N²
 
-**Typical:** 10,000 samples ≈ 0.8 MB
+**Typical:** 10,000 samples ≈ 0.8 MB (analyzer) + 800 MB (JRP distance matrix)
 
 ---
 
@@ -547,6 +615,13 @@ tests/
 2. Accept optional `ax` parameter
 3. Return `Axes` for composability
 4. Add to `create_dashboard()` if appropriate
+
+### Adding New JRP Metric
+
+1. Add to `jrp_rqa_metrics()` in `jrp.py`
+2. Add to lag sweep results in `lag_sweep_jrp()`
+3. Update scoring in `compute_scores()` if needed
+4. Add visualization in `DelayCharacterizationPipeline.plot_jrp()`
 
 ---
 

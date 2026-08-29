@@ -1,14 +1,15 @@
 # synch_delay -  Synchronization Analysis
 
-A unified Python framework for analyzing synchronization in time series data using the **Kuramoto order parameter**.
+A unified Python framework for analyzing synchronization in time series data using the **Kuramoto order parameter** and **Joint Recurrence Plots (JRP)**.
 
 ## Features
 
 - **Multiple Data Sources**: Experimental/industrial (Parquet), Lorenz attractor, Sinusoidal, Coupled Oscillators (Kuramoto model), Belousov-Zhabotinsky (Oregonator model)
 - **Core Analysis**: Hilbert transform, Instantaneous phase, Kuramoto order parameter R(t), Phase difference
-- **Visualization**: Comprehensive dashboards, Phase portraits, Animations
+- **Delay Characterization**: Automated lag sweep combining Kuramoto phase synchronization and JRP state-space synchronization
+- **Visualization**: Comprehensive dashboards, Phase portraits, Animations, Lag sweep plots
 - **Batch Comparison**: Compare synchronization across different data types
-- **Export**: CSV statistics, PNG dashboards, Time series data
+- **Export**: CSV statistics, PNG dashboards, Time series data, Parquet results
 - **CLI**: Command-line interface for quick analysis
 
 ## Installation
@@ -36,7 +37,7 @@ lorenz = LorenzDataSource(
     a=10.0, b=28.0, c=8.0/3.0,
     initial_values=[0.01, 0, 0.3],
     iterations=5000,
-    delay_steps=150,   # 1.5s delay at 100 Hz sampling
+    delay_steps=150,   # 1.5s delay at 100 Hz sampling (applied to signal A)
     noise_std=0.05,    # optional measurement noise
     sampling_rate=100.0
 )
@@ -76,13 +77,27 @@ bz = BelousovZhabotinskyDataSource(
     sampling_rate=100.0
 )
 SynchronizationPipeline(bz).run().plot_dashboard()
+
+# Delay characterization (find optimal lag)
+from synch_analysis import DelayCharacterizationPipeline
+delay_pipeline = DelayCharacterizationPipeline(
+    lorenz,
+    max_lag=300,
+    lag_step=1,
+    jrp_m=3, jrp_tau=1, jrp_rate=0.05, jrp_smooth_size=5
+).run()
+
+# Plot results
+delay_pipeline.plot_kuramoto(true_delay_sec=1.5)
+delay_pipeline.plot_jrp(true_delay_sec=1.5)
+delay_pipeline.plot_combined(true_delay_sec=1.5)
 ```
 
 ## Data Sources
 
 | Source | Description | Parameters |
 |--------|-------------|------------|
-| `ParquetDataSource` | Industrial/experimental sensor data from Parquet files | `file_path`, `column_a`, `column_b`, `index_start`, `index_end`, `window`, `lag` |
+| `ParquetDataSource` | Industrial/experimental sensor data from Parquet files | `file_path`, `column_a`, `column_b`, `index_start`, `index_end`, `window`, `lag`, `sampling_rate` |
 | `LorenzDataSource` | Lorenz attractor with sensor delay simulation | `a`, `b`, `c`, `dt`, `initial_values`, `iterations`, `variable`, `delay_steps`, `noise_std`, `sampling_rate` |
 | `SinusoidDataSource` | Sinusoidal signals with controllable phase/frequency/delay | `ph0_a`, `ph0_b`, `frq_a`, `frq_b`, `pers`, `delay_a`, `delay_b`, `iterations`, `sampling_rate` |
 | `CoupledOscillatorDataSource` | Kuramoto model coupled oscillators | `n_oscillators`, `coupling_strength`, `natural_freqs`, `dt`, `duration`, `noise_std`, `sampling_rate` |
@@ -105,7 +120,10 @@ synch-analysis coupled --coupling 0.8 --freqs 1.0 1.05 --duration 50 --output re
 
 # Parquet data
 synch-analysis parquet --file data.pqt --col-a varA --col-b varB --output results/
-
+  
+# Delay characterization (Optimal lag search)
+synch-analysis delay --file data.pqt --col-a varA --col-b varB --max-lag 600 --output results/
+  
 # Belousov-Zhabotinsky (Oregonator model)
 synch-analysis bz --iterations 10000 --delay-steps 100 --noise 0.05 --output results/
 ```
@@ -113,7 +131,7 @@ synch-analysis bz --iterations 10000 --delay-steps 100 --noise 0.05 --output res
 ### CLI Options
 
 ```
-synch-analysis [lorenz|sinusoid|coupled|parquet|bz] [OPTIONS]
+synch-analysis [lorenz|sinusoid|coupled|parquet|bz|delay] [OPTIONS]
 
 Common options:
   --output, -o        Output directory (default: results)
@@ -146,8 +164,8 @@ Coupled:
 Parquet:
   --file              Parquet file path
   --col-a, --col-b    Column names
-  --start, --end      Index range
-  --window            Rolling window size (default: 60)
+  --start, --end      Index range (int for positional, str for timestamp)
+  --window            Rolling window size (default: 60, use 1 for no smoothing)
   --lag               Time lag between signals
 
 BZ:
@@ -161,6 +179,14 @@ BZ:
   --delay-steps       Sensor delay in time steps (default: 100)
   --noise             Measurement noise std (default: 0.05)
   --transient         Transient steps to discard (default: 2000)
+
+Delay:
+  --max-lag           Maximum lag to sweep (default: 100)
+  --lag-step          Lag step size (default: 1)
+  --jrp-m             Embedding dimension (default: 3)
+  --jrp-tau           Embedding delay (default: 1)
+  --jrp-rate          Recurrence rate (default: 0.05)
+  --jrp-smooth-size   Smoothing window for JRP (default: 5)
 ```
 
 ## Project Structure
@@ -173,16 +199,18 @@ synch_delay/
 │   ├── sources.py         # Data source implementations
 │   ├── analyzer.py        # SynchronizationAnalyzer
 │   ├── visualizer.py      # SynchronizationVisualizer
-│   ├── pipeline.py        # SynchronizationPipeline, batch comparison
+│   ├── pipeline.py        # SynchronizationPipeline, DelayCharacterizationPipeline, batch comparison
+│   ├── jrp.py             # Joint Recurrence Plot functions
 │   └── cli.py             # Command-line interface
 ├── notebooks/             # Example notebooks
 │   ├── synch_analysis_unified.ipynb            # Complete framework demo
-│   ├── kuramoto_jrp_analysis_varA_varB.ipynb      # varA/varB combined Kuramoto+JRP
-│   ├── kuramoto_jrp_output_varA_varB.ipynb        # varA/varB output
-│   ├── kuramoto_jrp_analysis_bz_delayed.ipynb   # BZ delayed JRP analysis
-│   ├── kuramoto_jrp_output_bz_delayed.ipynb     # BZ delayed output
+│   ├── delay_char_industrial.ipynb             # Industrial delay characterization
+│   ├── delay_char_lorenz_delayed.ipynb         # Lorenz delay characterization
+│   ├── delay_char_bz_delayed.ipynb             # BZ delay characterization
+│   ├── kuramoto_jrp_analysis_varA_varB.ipynb   # varA/varB combined Kuramoto+JRP
+│   ├── kuramoto_jrp_analysis_bz_delayed.ipynb  # BZ delayed JRP analysis
 │   ├── kuramoto_jrp_analysis_lorenz_delayed.ipynb # Lorenz delayed JRP analysis
-│   └── kuramoto_jrp_output_lorenz_delayed.ipynb # Lorenz delayed output
+│   └── kuramoto_jrp_output_*.ipynb             # Executable output notebooks
 ├── data/                  # Data files (Parquet, etc.)
 ├── results/               # Analysis outputs
 ├── requirements.txt
@@ -200,19 +228,19 @@ jupyter notebook notebooks/
 
 Available notebooks:
 - `synch_analysis_unified.ipynb` - Complete framework demo
+- `delay_char_industrial.ipynb` - Industrial delay characterization (Parquet data)
+- `delay_char_lorenz_delayed.ipynb` - Lorenz delay characterization
+- `delay_char_bz_delayed.ipynb` - BZ delay characterization
 - `kuramoto_jrp_analysis_varA_varB.ipynb` - varA/varB combined Kuramoto + JRP analysis
-- `kuramoto_jrp_output_varA_varB.ipynb` - Executable output (varA/varB)
 - `kuramoto_jrp_analysis_bz_delayed.ipynb` - BZ delayed JRP analysis
-- `kuramoto_jrp_output_bz_delayed.ipynb` - Executable output (BZ delayed)
 - `kuramoto_jrp_analysis_lorenz_delayed.ipynb` - Lorenz delayed signal analysis
-- `kuramoto_jrp_output_lorenz_delayed.ipynb` - Lorenz delayed output
 
 **All JRP notebooks include real lag calculation:** Physical transport delay computed and marked on plots for comparison with optimal synchronization lag.
 
 **Analysis criteria (updated):**
 - **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and mean Kuramoto r (r_mean)
-- **JRP**: Combined DET × LAM × RR score, excluding extreme lags (±max_lag)
-- **Combined**: Arithmetic mean of normalized Kuramoto and JRP scores
+- **JRP**: Normalized Recurrence Rate (RR) as sole criterion, excluding extreme lags (±max_lag)
+- **Combined**: Arithmetic mean of both normalized scores
 
 **Figure settings:**
 - Publication-quality figures with white background
@@ -228,6 +256,9 @@ Available notebooks:
 | mean_R | [0, 1] | Average synchronization level |
 | sync_ratio | [0, 1] | Fraction of time with R > 0.8 |
 | phase_diff | [-π, π] | Phase lag between signals |
+| jrp_RR | [0, 1] | Joint Recurrence Rate |
+| jrp_DET | [0, 1] | Determinism (diagonal lines) |
+| jrp_LAM | [0, 1] | Laminarity (vertical lines) |
 
 ## Export Formats
 

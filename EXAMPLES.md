@@ -91,6 +91,11 @@ for delay in range(0, 300, 10):
     print(f"Delay {delay:3d}: Mean R = {stats['mean_R']:.4f}")
 ```
 
+**Lag Convention:**
+- `delay_steps=150` means signal A is delayed by 150 steps relative to signal B
+- The pipeline will find optimal lag = -150 to align the signals
+- `true_delay_sec = -delay_steps / sampling_rate` for plotting
+
 ---
 
 ### Sinusoidal Signals
@@ -262,6 +267,10 @@ for delay in range(0, 300, 10):
     print(f"Delay {delay:3d}: Mean R = {stats['mean_R']:.4f}")
 ```
 
+**Lag Convention:**
+- `delay_steps=100` means signal A is delayed by 100 steps relative to signal B
+- The pipeline will find optimal lag = -100 to align the signals
+
 ---
 
 ### Parquet Data (Industrial/Experimental)
@@ -285,7 +294,22 @@ pipeline = SynchronizationPipeline(parquet).run()
 pipeline.plot_dashboard(sliding_window=50)
 ```
 
-**With time lag analysis:**
+**Timestamp-based slicing:**
+```python
+# Slice by timestamp (auto-detects datetime column)
+parquet = ParquetDataSource(
+    file_path="data/sensors.parquet",
+    column_a="sensor_A",
+    column_b="sensor_B",
+    index_start="2021-11-03 12:10:00",
+    index_end="2021-11-03 12:30:00",
+    window=1,               # No smoothing in data source
+    lag=None,
+    sampling_rate=1.0
+)
+```
+
+**With time lag analysis (manual):**
 ```python
 # Test different lags to find optimal synchronization
 for lag in range(-10, 11):
@@ -299,6 +323,26 @@ for lag in range(-10, 11):
     pipeline = SynchronizationPipeline(parquet_lag).run()
     stats = pipeline.get_stats()
     print(f"Lag {lag:3d}: Mean R = {stats['mean_R']:.4f}")
+```
+
+**For automated delay characterization, use `DelayCharacterizationPipeline`:**
+```python
+from synch_analysis import DelayCharacterizationPipeline
+
+pipeline = DelayCharacterizationPipeline(
+    parquet,
+    max_lag=500,
+    lag_step=5,
+    jrp_m=5,
+    jrp_tau=1,
+    jrp_rate=0.3,
+    jrp_smooth_size=5,
+).run()
+
+# Plot with true delay marker (in seconds)
+pipeline.plot_kuramoto(true_delay_sec=90)
+pipeline.plot_jrp(true_delay_sec=90)
+pipeline.plot_combined(true_delay_sec=90)
 ```
 
 ---
@@ -492,6 +536,61 @@ plt.show()
 
 ---
 
+### Delay Characterization Sweep
+
+```python
+from synch_analysis import (
+    LorenzDataSource, DelayCharacterizationPipeline
+)
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Sweep delay steps to find true delay
+delay_values = range(0, 300, 10)
+results = []
+
+for delay in delay_values:
+    source = LorenzDataSource(
+        delay_steps=delay,
+        noise_std=0.02,
+        iterations=2000
+    )
+    pipeline = DelayCharacterizationPipeline(
+        source,
+        max_lag=300,
+        lag_step=5,
+        jrp_m=3, jrp_tau=1, jrp_rate=0.05, jrp_smooth_size=5
+    ).run()
+    
+    opt = pipeline.get_optimal_lags()
+    stats = pipeline.get_results()
+    
+    results.append({
+        'true_delay': -delay,  # Pipeline convention: negative
+        'best_kuramoto': opt['best_kuramoto_lag'],
+        'best_jrp': opt['best_jrp_lag'],
+        'best_combined': opt['best_combined_lag'],
+    })
+
+df = pd.DataFrame(results)
+
+# Plot delay detection accuracy
+plt.figure(figsize=(10, 6))
+plt.plot(-df['true_delay'], df['best_kuramoto'], 'b-o', label='Kuramoto')
+plt.plot(-df['true_delay'], df['best_jrp'], 'r-s', label='JRP')
+plt.plot(-df['true_delay'], df['best_combined'], 'k-^', label='Combined')
+plt.plot([-300, 0], [-300, 0], 'k--', alpha=0.5, label='Perfect')
+plt.xlabel('True Delay (steps)')
+plt.ylabel('Estimated Delay (steps)')
+plt.title('Delay Detection Accuracy')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+```
+
+---
+
 ## Export Examples
 
 ### Export All Results
@@ -565,6 +664,34 @@ print(f"Exported to {output_dir}")
 
 ---
 
+### Delay Characterization Export
+
+```python
+from synch_analysis import DelayCharacterizationPipeline, LorenzDataSource
+
+lorenz = LorenzDataSource(delay_steps=150, iterations=5000)
+pipeline = DelayCharacterizationPipeline(
+    lorenz,
+    max_lag=300, lag_step=1,
+    jrp_m=3, jrp_tau=1, jrp_rate=0.05, jrp_smooth_size=5
+).run()
+
+# Export all results
+pipeline.export_results("results/lorenz_delay")
+
+# Creates:
+# results/lorenz_delay/
+# ├── lag_sweep_results.parquet      # Full combined results
+# ├── kuramoto_lag_sweep.parquet     # Kuramoto metrics
+# ├── jrp_lag_sweep.parquet          # JRP metrics
+# ├── kuramoto_scores.png            # Kuramoto plots
+# ├── jrp_scores.png                 # JRP plots
+# ├── combined_scores.png            # Combined plots
+# └── delay_summary.txt              # Text summary
+```
+
+---
+
 ## CLI Examples
 
 ```bash
@@ -582,6 +709,9 @@ synch-analysis parquet --file data/sensors.pqt --col-a varA --col-b varB --windo
 
 # Belousov-Zhabotinsky (Oregonator model)
 synch-analysis bz --iterations 10000 --delay-steps 100 --noise 0.05 --output results/bz --dashboard
+
+# Delay characterization
+synch-analysis delay --file data/sensors.pqt --col-a varA --col-b varB --max-lag 600 --output results/delay
 
 # JSON output for scripting
 synch-analysis lorenz --iterations 1000 --stats --format json > stats.json
@@ -654,12 +784,12 @@ pd.DataFrame([pipeline.get_stats()]).T.style.format("{:.6f}")
 
 ## Industrial Data Notebooks (in `notebooks/`)
 
-### Phase Synchronization Analysis (varA/varB Temperatures)
+### Phase Synchronization Analysis (varA/varB)
 
 ```bash
 # Open the notebooks from notebooks/ directory
+jupyter notebook notebooks/delay_char_industrial.ipynb
 jupyter notebook notebooks/kuramoto_jrp_analysis_varA_varB.ipynb
-jupyter notebook notebooks/kuramoto_jrp_output_varA_varB.ipynb
 ```
 
 These notebooks analyze synchronization between **VarA** and **VarB** from `../data/datos_ind.pqt` (relative to notebooks/).
@@ -682,7 +812,7 @@ These notebooks analyze synchronization between **VarA** and **VarB** from `../d
 
 **Optimal lag criteria (updated):**
 - **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and mean Kuramoto r (r_mean)
-- **JRP**: Combined DET × LAM × RR score, excluding extreme lags (±max_lag)
+- **JRP**: Normalized Recurrence Rate (RR) as sole criterion, excluding extreme lags (±max_lag)
 - **Combined**: Arithmetic mean of both normalized scores
 
 **Real lag (physical transit time):**
@@ -712,11 +842,13 @@ print(f"Best Kuramoto lag: {best_kuramoto}s")
 print(f"Best JRP lag: {best_jrp}s")
 ```
 
+---
+
 ### BZ Delayed Signal Analysis
 
 ```bash
+jupyter notebook notebooks/delay_char_bz_delayed.ipynb
 jupyter notebook notebooks/kuramoto_jrp_analysis_bz_delayed.ipynb
-jupyter notebook notebooks/kuramoto_jrp_output_bz_delayed.ipynb
 ```
 
 These analyze synchronization between a BZ (Belousov-Zhabotinsky) signal and its delayed version using combined Kuramoto + JRP analysis.
@@ -729,7 +861,7 @@ These analyze synchronization between a BZ (Belousov-Zhabotinsky) signal and its
 
 **Optimal lag criteria:**
 - **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and mean Kuramoto r (r_mean)
-- **JRP**: Combined DET × LAM × RR score, excluding extreme lags (±max_lag)
+- **JRP**: Normalized Recurrence Rate (RR) as sole criterion, excluding extreme lags (±max_lag)
 - **Combined**: Arithmetic mean of both normalized scores
 
 **Data:** Results saved to `../data/kuramoto_jrp_lag_sweep_bz_delayed.parquet` (from notebooks/ directory).
@@ -741,11 +873,13 @@ All notebooks use publication-quality figure settings:
 - High DPI (300) suitable for journal publication
 - Tight bounding box and minimal padding
 
+---
+
 ### Lorenz Delayed Signal Analysis
 
 ```bash
+jupyter notebook notebooks/delay_char_lorenz_delayed.ipynb
 jupyter notebook notebooks/kuramoto_jrp_analysis_lorenz_delayed.ipynb
-jupyter notebook notebooks/kuramoto_jrp_output_lorenz_delayed.ipynb
 ```
 
 These analyze synchronization between a Lorenz x-variable and its delayed version (true delay: 150 steps = 1.5s at 100 Hz).
@@ -758,7 +892,7 @@ These analyze synchronization between a Lorenz x-variable and its delayed versio
 
 **Optimal lag criteria (updated):**
 - **Kuramoto**: Combines fraction of time with strong phase sync (frac_above_07) and mean Kuramoto r (r_mean)
-- **JRP**: Combined DET × LAM × RR score, excluding extreme lags (±max_lag)
+- **JRP**: Normalized Recurrence Rate (RR) as sole criterion, excluding extreme lags (±max_lag)
 - **Combined**: Arithmetic mean of both normalized scores
 
 **True delay:** Known to be 150 steps (1.5s), used as ground truth for validation.

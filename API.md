@@ -5,20 +5,22 @@ Complete API reference for `synch_analysis` package.
 ## Public API (`synch_analysis`)
 
 ```python
-from synch_analysis import (
-    SignalPair,
-    DataSource,
-    ParquetDataSource,
-    LorenzDataSource,
-    SinusoidDataSource,
-    CoupledOscillatorDataSource,
-    BelousovZhabotinskyDataSource,
-    SynchronizationAnalyzer,
-    SynchronizationVisualizer,
-    SynchronizationPipeline,
-    compare_data_sources,
-    export_results,
-)
+ from synch_analysis import (
+     SignalPair,
+     DataSource,
+     ParquetDataSource,
+     LorenzDataSource,
+     SinusoidDataSource,
+     CoupledOscillatorDataSource,
+     BelousovZhabotinskyDataSource,
+     SynchronizationAnalyzer,
+     SynchronizationVisualizer,
+     SynchronizationPipeline,
+     DelayCharacterizationPipeline,
+     compare_data_sources,
+     export_results,
+ )
+
 ```
 
 ---
@@ -83,8 +85,8 @@ class ParquetDataSource(DataSource):
         file_path: str,
         column_a: str,
         column_b: str,
-        index_start: int = 0,
-        index_end: Optional[int] = None,
+        index_start: Union[int, str] = 0,
+        index_end: Optional[Union[int, str]] = None,
         window: int = 60,
         lag: Optional[int] = None,
         sampling_rate: float = 1.0,
@@ -94,49 +96,50 @@ class ParquetDataSource(DataSource):
 **Parameters:**
 - `file_path`: Path to Parquet file
 - `column_a`, `column_b`: Column names for signal A and B
-- `index_start`, `index_end`: Row slice indices
-- `window`: Rolling window for smoothing
+- `index_start`, `index_end`: Row slice indices (int for positional, str for timestamp)
+- `window`: Rolling window for smoothing (use 1 for no smoothing, default: 60)
 - `lag`: Time lag to apply (positive = delay A relative to B)
 - `sampling_rate`: Output sampling rate
 
 **Processing:**
 1. Load columns from Parquet
-2. Apply rolling mean with `window`
-3. Remove NaN from rolling
-4. Apply lag if specified
-5. Center signals (remove mean)
-6. Symmetrize for Hilbert transform (mirror + concatenate)
+2. Auto-detect datetime column if timestamp slicing requested
+3. Apply rolling mean with `window` (only if window > 1)
+4. Remove NaN from rolling
+5. Apply lag if specified
+6. Center signals (remove mean)
 
 **Example: varA/varB from datos_ind.pqt**
 ```python
-from synch_analysis import ParquetDataSource, SynchronizationPipeline
+from synch_analysis import ParquetDataSource, DelayCharacterizationPipeline
 
 # varA (Inlet) vs varB (Outlet) 
 parquet = ParquetDataSource(
     file_path="data/datos_ind.pqt",
     column_a="VarA",
     column_b="VarB",
-    index_start=0,
-    index_end=3600,  # 1 hour at 1 Hz
-    window=10,
-    lag=None,  # Test different lags manually
+    index_start="2021-11-03 12:10:00",
+    index_end="2021-11-03 12:30:00",
+    window=1,  # No smoothing in data source
+    lag=None,
     sampling_rate=1.0
 )
 
-pipeline = SynchronizationPipeline(parquet).run()
-pipeline.plot_dashboard()
+# Delay characterization pipeline
+pipeline = DelayCharacterizationPipeline(
+    parquet,
+    max_lag=500,
+    lag_step=5,
+    jrp_m=5,
+    jrp_tau=1,
+    jrp_rate=0.3,
+    jrp_smooth_size=5,
+).run()
 
-# To find optimal lag:
-for lag in range(-600, 601, 10):
-    p = ParquetDataSource(
-        file_path="data/datos_ind.pqt",
-        column_a="VarA",
-        column_b="VarB",
-        index_start=0, index_end=3600,
-        window=10, lag=lag, sampling_rate=1.0
-    )
-    stats = SynchronizationPipeline(p).run().get_stats()
-    print(f"Lag {lag:4d}: Mean R = {stats['mean_R']:.4f}")
+# Plot results
+pipeline.plot_kuramoto(true_delay_sec=90)
+pipeline.plot_jrp(true_delay_sec=90)
+pipeline.plot_combined(true_delay_sec=90)
 ```
 
 ---
@@ -171,6 +174,10 @@ class LorenzDataSource(DataSource):
 - `delay_steps`: Sensor delay in time steps (default: 0). Creates delayed version of signal A
 - `noise_std`: Optional Gaussian noise std for delayed signal
 - `sampling_rate`: Output sampling rate
+
+**Lag Convention:**
+- Positive `delay_steps` means signal A is delayed relative to signal B
+- To align signals, the pipeline will find lag = -delay_steps
 
 ---
 
@@ -429,7 +436,68 @@ def get_stats(self) -> Dict[str, float]:
 
 ---
 
+### DelayCharacterizationPipeline
+
+```python
+class DelayCharacterizationPipeline:
+    """Pipeline for delay characterization via lag sweep (Kuramoto + JRP)."""
+    
+    def __init__(
+        self,
+        data_source: DataSource,
+        max_lag: int = 100,
+        lag_step: int = 1,
+        jrp_m: int = 3,
+        jrp_tau: int = 1,
+        jrp_rate: float = 0.05,
+        jrp_smooth_size: int = 5,
+    ):
+```
+
+**Parameters:**
+- `data_source`: Source of the two signals to analyze
+- `max_lag`: Maximum lag to sweep in both directions (±max_lag)
+- `lag_step`: Step size for the lag sweep
+- `jrp_m`, `jrp_tau`, `jrp_rate`, `jrp_smooth_size`: Parameters for the JRP analysis
+
+**Methods:**
+
+#### run()
+```python
+def run(self) -> "DelayCharacterizationPipeline":
+    """Execute the full delay characterization pipeline."""
+```
+
+#### get_results()
+```python
+def get_results(self) -> pd.DataFrame:
+    """Get combined lag sweep results."""
+```
+
+#### get_optimal_lags()
+```python
+def get_optimal_lags(self) -> Dict[str, int]:
+    """Get optimal lags from both methods."""
+```
+
+#### plot_kuramoto(**kwargs) / plot_jrp(**kwargs) / plot_combined(**kwargs)
+```python
+def plot_combined(self, **kwargs):
+    """Plot combined Kuramoto + JRP scores."""
+```
+
+All plot methods accept `true_delay_sec` parameter to mark the true delay on the plot.
+
+#### export_results(output_dir="results_delay")
+```python
+def export_results(self, output_dir: str = "results_delay"):
+    """Export delay characterization results."""
+```
+
+---
+
 ## Utilities
+
 
 ### compare_data_sources
 ```python

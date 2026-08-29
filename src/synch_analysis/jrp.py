@@ -148,6 +148,7 @@ def lag_sweep_jrp(
     tau: int = 1,
     rate: float = 0.05,
     smooth_size: int = 5,
+    sampling_rate: float = 1.0,
 ) -> pd.DataFrame:
     """Perform JRP lag sweep.
 
@@ -197,6 +198,7 @@ def lag_sweep_jrp(
         results.append(
             {
                 "lag": int(lag),
+                "lag_sec": lag / sampling_rate,
                 "jrp_RR": metrics["RR"],
                 "jrp_DET": metrics["DET"],
                 "jrp_LAM": metrics["LAM"],
@@ -277,8 +279,9 @@ def compute_scores(
     max_lag: int,
 ) -> pd.DataFrame:
     """Compute combined scores from Kuramoto and JRP results."""
+    # Both dataframes should have 'lag' and 'lag_sec' columns
     merged = (
-        kuramoto_df.merge(jrp_df, on="lag", how="outer").sort_values("lag").reset_index(drop=True)
+        kuramoto_df.merge(jrp_df, on=["lag", "lag_sec"], how="outer").sort_values("lag").reset_index(drop=True)
     )
 
     def normalize(series: pd.Series) -> pd.Series:
