@@ -128,6 +128,7 @@ class LorenzDataSource(DataSource):
 
         # Add optional noise to delayed signal
         if self.noise_std > 0:
+            signal_b = signal_b.copy()
             signal_b += np.random.normal(0, self.noise_std, len(signal_b))
 
         # Center signals
