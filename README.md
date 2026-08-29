@@ -1,12 +1,12 @@
-# synch_delay -  Synchronization Analysis
+# synch_delay - Synchronization & Delay Characterization
 
-A unified Python framework for analyzing synchronization in time series data using the **Kuramoto order parameter** and **Joint Recurrence Plots (JRP)**.
+A unified Python framework for analyzing synchronization in time series data using the **Kuramoto order parameter** and **Joint Recurrence Plots (JRP)**, with automated **delay characterization** via lag sweep.
 
 ## Features
 
 - **Multiple Data Sources**: Experimental/industrial (Parquet), Lorenz attractor, Sinusoidal, Coupled Oscillators (Kuramoto model), Belousov-Zhabotinsky (Oregonator model)
 - **Core Analysis**: Hilbert transform, Instantaneous phase, Kuramoto order parameter R(t), Phase difference
-- **Delay Characterization**: Automated lag sweep combining Kuramoto phase synchronization and JRP state-space synchronization
+- **Delay Characterization**: Automated lag sweep combining Kuramoto phase synchronization and JRP state-space synchronization — *primary pipeline for finding optimal time delays*
 - **Visualization**: Comprehensive dashboards, Phase portraits, Animations, Lag sweep plots
 - **Batch Comparison**: Compare synchronization across different data types
 - **Export**: CSV statistics, PNG dashboards, Time series data, Parquet results
@@ -27,10 +27,10 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-### Python API
+### Delay Characterization Pipeline (Primary)
 
 ```python
-from synch_analysis import LorenzDataSource, SynchronizationPipeline
+from synch_analysis import LorenzDataSource, DelayCharacterizationPipeline
 
 # Lorenz attractor with sensor delay simulation
 lorenz = LorenzDataSource(
@@ -42,8 +42,54 @@ lorenz = LorenzDataSource(
     sampling_rate=100.0
 )
 
+# Run delay characterization pipeline
+pipeline = DelayCharacterizationPipeline(
+    lorenz,
+    max_lag=300,
+    lag_step=1,
+    jrp_m=3, jrp_tau=1, jrp_rate=0.05, jrp_smooth_size=5
+).run()
+
+# Get optimal lags
+opt = pipeline.get_optimal_lags()
+print(f"Best Kuramoto lag: {opt['best_kuramoto_lag']} steps")
+print(f"Best JRP lag: {opt['best_jrp_lag']} steps")
+print(f"Best Combined lag: {opt['best_combined_lag']} steps")
+
+# Plot results with true delay marker
+pipeline.plot_kuramoto(true_delay_sec=1.5)
+pipeline.plot_jrp(true_delay_sec=1.5)
+pipeline.plot_combined(true_delay_sec=1.5)
+
+# Export all results
+pipeline.export_results("results/lorenz_delay")
+```
+
+### Synchronization Analysis Pipeline
+
+```python
+from synch_analysis import LorenzDataSource, SynchronizationPipeline
+
+# Lorenz attractor with sensor delay simulation
+lorenz = LorenzDataSource(
+    a=10.0, b=28.0, c=8.0/3.0,
+    initial_values=[0.01, 0, 0.3],
+    iterations=5000,
+    delay_steps=150,   # 1.5s delay at 100 Hz sampling
+    noise_std=0.05,
+    sampling_rate=100.0
+)
+
 # Run analysis pipeline
 pipeline = SynchronizationPipeline(lorenz).run()
+
+# View dashboard
+pipeline.plot_dashboard()
+
+# Get statistics
+stats = pipeline.get_stats()
+print(f"Mean R: {stats['mean_R']:.4f}")
+print(f"Sync ratio: {stats['sync_ratio']:.2%}")
 ```
 
 ### Other Data Sources
@@ -52,7 +98,7 @@ pipeline = SynchronizationPipeline(lorenz).run()
 # Sinusoidal signals with phase delay
 from synch_analysis import SinusoidDataSource
 sin = SinusoidDataSource(frq_a=2, frq_b=2, delay_a=0, delay_b=3)
-SynchronizationPipeline(sin).run().plot_dashboard()
+DelayCharacterizationPipeline(sin, max_lag=50).run().plot_combined()
 
 # Coupled oscillators (Kuramoto model)
 from synch_analysis import CoupledOscillatorDataSource
@@ -60,12 +106,12 @@ import numpy as np
 coupled = CoupledOscillatorDataSource(coupling_strength=0.8, 
                                        natural_freqs=np.array([1.0, 1.05]),
                                        duration=50.0)
-SynchronizationPipeline(coupled).run().plot_dashboard()
+DelayCharacterizationPipeline(coupled, max_lag=100).run().plot_combined()
 
 # Industrial data from Parquet
 from synch_analysis import ParquetDataSource
 parquet = ParquetDataSource("data/sensor.pqt", "varA", "varB")
-SynchronizationPipeline(parquet).run().plot_dashboard()
+DelayCharacterizationPipeline(parquet, max_lag=500, lag_step=5).run().plot_combined()
 
 # Belousov-Zhabotinsky oscillator (Oregonator model) with sensor delay
 from synch_analysis import BelousovZhabotinskyDataSource
@@ -76,21 +122,7 @@ bz = BelousovZhabotinskyDataSource(
     noise_std=0.05,
     sampling_rate=100.0
 )
-SynchronizationPipeline(bz).run().plot_dashboard()
-
-# Delay characterization (find optimal lag)
-from synch_analysis import DelayCharacterizationPipeline
-delay_pipeline = DelayCharacterizationPipeline(
-    lorenz,
-    max_lag=300,
-    lag_step=1,
-    jrp_m=3, jrp_tau=1, jrp_rate=0.05, jrp_smooth_size=5
-).run()
-
-# Plot results
-delay_pipeline.plot_kuramoto(true_delay_sec=1.5)
-delay_pipeline.plot_jrp(true_delay_sec=1.5)
-delay_pipeline.plot_combined(true_delay_sec=1.5)
+DelayCharacterizationPipeline(bz, max_lag=300).run().plot_combined()
 ```
 
 ## Data Sources
@@ -106,6 +138,9 @@ delay_pipeline.plot_combined(true_delay_sec=1.5)
 ## CLI Usage
 
 ```bash
+# Delay characterization (Optimal lag search) - PRIMARY
+synch-analysis delay --file data.pqt --col-a varA --col-b varB --max-lag 600 --output results/
+
 # Lorenz attractor with sensor delay
 synch-analysis lorenz --iterations 5000 --delay-steps 150 --noise 0.05 --output results/
 
@@ -120,10 +155,7 @@ synch-analysis coupled --coupling 0.8 --freqs 1.0 1.05 --duration 50 --output re
 
 # Parquet data
 synch-analysis parquet --file data.pqt --col-a varA --col-b varB --output results/
-  
-# Delay characterization (Optimal lag search)
-synch-analysis delay --file data.pqt --col-a varA --col-b varB --max-lag 600 --output results/
-  
+   
 # Belousov-Zhabotinsky (Oregonator model)
 synch-analysis bz --iterations 10000 --delay-steps 100 --noise 0.05 --output results/
 ```
@@ -262,10 +294,19 @@ Available notebooks:
 
 ## Export Formats
 
-The `export_results()` function creates:
+### SynchronizationPipeline (`export_results()`)
 - `sync_stats.csv` - Summary statistics
 - `sync_timeseries.csv` - Time series data (R, phases, phase diff)
 - `sync_dashboard.png` - Full dashboard visualization
+
+### DelayCharacterizationPipeline (`export_results()`)
+- `lag_sweep_results.parquet` - Full combined lag sweep results
+- `kuramoto_lag_sweep.parquet` - Kuramoto metrics per lag
+- `jrp_lag_sweep.parquet` - JRP metrics per lag
+- `kuramoto_scores.png` - Kuramoto score plots
+- `jrp_scores.png` - JRP score plots
+- `combined_scores.png` - Combined score plots with optimal lags
+- `delay_summary.txt` - Text summary with optimal lags and metrics
 
 ## License
 

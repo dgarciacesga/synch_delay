@@ -14,13 +14,16 @@ from . import (
     BelousovZhabotinskyDataSource,
     ParquetDataSource,
     SynchronizationPipeline,
+    DelayCharacterizationPipeline,
     export_results,
 )
 
 
 def create_source(args):
     """Create data source from command line arguments."""
-    if args.type == "lorenz":
+    source_type = getattr(args, "source_type", args.type)
+    
+    if source_type == "lorenz":
         return LorenzDataSource(
             a=args.a,
             b=args.b,
@@ -33,7 +36,7 @@ def create_source(args):
             delay_steps=args.delay_steps,
             noise_std=args.noise,
         )
-    elif args.type == "sinusoid":
+    elif source_type == "sinusoid":
         return SinusoidDataSource(
             ph0_a=args.ph0_a,
             ph0_b=args.ph0_b,
@@ -45,7 +48,7 @@ def create_source(args):
             iterations=args.iterations,
             sampling_rate=args.sampling_rate,
         )
-    elif args.type == "coupled":
+    elif source_type == "coupled":
         return CoupledOscillatorDataSource(
             n_oscillators=len(args.freqs),
             coupling_strength=args.coupling,
@@ -55,7 +58,7 @@ def create_source(args):
             noise_std=args.noise,
             sampling_rate=args.sampling_rate,
         )
-    elif args.type == "parquet":
+    elif source_type == "parquet":
         return ParquetDataSource(
             file_path=args.file,
             column_a=args.col_a,
@@ -66,7 +69,7 @@ def create_source(args):
             lag=args.lag,
             sampling_rate=args.sampling_rate,
         )
-    elif args.type == "bz":
+    elif source_type == "bz":
         return BelousovZhabotinskyDataSource(
             f=args.bz_f,
             q=args.bz_q,
@@ -81,7 +84,7 @@ def create_source(args):
             transient=args.bz_transient,
         )
     else:
-        raise ValueError(f"Unknown source type: {args.type}")
+        raise ValueError(f"Unknown source type: {source_type}")
 
 
 def main():
@@ -90,6 +93,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  # Delay characterization (Optimal lag search) - PRIMARY
+  synch-analysis delay --source-type lorenz --iterations 5000 --delay-steps 150 --max-lag 300 --output results/
+  
   # Lorenz attractor with sensor delay
   synch-analysis lorenz --iterations 5000 --delay-steps 150 --noise 0.05 --output results/
   
@@ -225,9 +231,113 @@ Examples:
         help="Transient steps to discard",
     )
 
+    # Delay characterization subparser
+    delay_parser = subparsers.add_parser(
+        "delay", parents=[common_parser], help="Delay characterization (lag sweep)"
+    )
+    delay_parser.add_argument(
+        "--source-type",
+        choices=["lorenz", "sinusoid", "coupled", "parquet", "bz"],
+        default="lorenz",
+        help="Data source type to use for delay characterization",
+    )
+    delay_parser.add_argument(
+        "--max-lag", type=int, default=100, help="Maximum lag to sweep"
+    )
+    delay_parser.add_argument(
+        "--lag-step", type=int, default=1, help="Lag step size"
+    )
+    delay_parser.add_argument(
+        "--jrp-m", type=int, default=3, help="JRP embedding dimension"
+    )
+    delay_parser.add_argument(
+        "--jrp-tau", type=int, default=1, help="JRP embedding delay"
+    )
+    delay_parser.add_argument(
+        "--jrp-rate", type=float, default=0.05, help="JRP recurrence rate"
+    )
+    delay_parser.add_argument(
+        "--jrp-smooth-size", type=int, default=5, help="JRP smoothing window"
+    )
+
+    # Add source-specific arguments for delay mode
+    # Lorenz args
+    delay_parser.add_argument("--a", type=float, default=10.0)
+    delay_parser.add_argument("--b", type=float, default=28.0)
+    delay_parser.add_argument("--c", type=float, default=8.0 / 3.0)
+    delay_parser.add_argument("--dt", type=float, default=0.01)
+    delay_parser.add_argument("--x", type=float, default=0.01)
+    delay_parser.add_argument("--y", type=float, default=0.0)
+    delay_parser.add_argument("--z", type=float, default=0.3)
+    delay_parser.add_argument("--iterations", type=int, default=1000)
+    delay_parser.add_argument("--variable", default="x", choices=["x", "y", "z"])
+    delay_parser.add_argument("--delay-steps", type=int, default=0, help="Sensor delay in time steps (for ground truth)")
+    delay_parser.add_argument("--noise", type=float, default=0.0, help="Measurement noise std")
+
+    # Sinusoid args
+    delay_parser.add_argument("--ph0-a", type=float, default=0)
+    delay_parser.add_argument("--ph0-b", type=float, default=0)
+    delay_parser.add_argument("--frq-a", type=float, default=1)
+    delay_parser.add_argument("--frq-b", type=float, default=1)
+    delay_parser.add_argument("--pers", type=int, default=1)
+    delay_parser.add_argument("--delay-a", type=float, default=0)
+    delay_parser.add_argument("--delay-b", type=float, default=0)
+
+    # Coupled args
+    delay_parser.add_argument("--coupling", type=float, default=0.5)
+    delay_parser.add_argument("--freqs", nargs="+", type=float, default=[1.0, 1.05])
+    delay_parser.add_argument("--duration", type=float, default=100.0)
+
+    # Parquet args
+    delay_parser.add_argument("--file", help="Parquet file path")
+    delay_parser.add_argument("--col-a", help="Column A name")
+    delay_parser.add_argument("--col-b", help="Column B name")
+    delay_parser.add_argument("--start", type=int, default=0)
+    delay_parser.add_argument("--end", type=int, default=None)
+    delay_parser.add_argument("--window", type=int, default=60)
+    delay_parser.add_argument("--lag", type=int, default=None)
+
+    # BZ args
+    delay_parser.add_argument("--bz-f", type=float, default=1.0, help="Stoichiometric parameter f")
+    delay_parser.add_argument("--bz-q", type=float, default=0.05, help="Small parameter q")
+    delay_parser.add_argument("--bz-eps", type=float, default=0.02, help="Time-scale separation parameter eps")
+    delay_parser.add_argument("--bz-dt", type=float, default=0.01, help="Integration time step")
+    delay_parser.add_argument("--bz-x0", type=float, default=0.1, help="Initial x value")
+    delay_parser.add_argument("--bz-z0", type=float, default=0.1, help="Initial z value")
+    delay_parser.add_argument("--bz-iterations", type=int, default=10000, help="Number of integration steps")
+    delay_parser.add_argument("--bz-variable", default="x", choices=["x", "z"], help="Variable to extract")
+    delay_parser.add_argument("--bz-delay-steps", type=int, default=100, help="Sensor delay in time steps")
+    delay_parser.add_argument("--bz-noise", type=float, default=0.05, help="Measurement noise std")
+    delay_parser.add_argument("--bz-transient", type=int, default=2000, help="Transient steps to discard")
+
     args = parser.parse_args()
 
     try:
+        # Handle delay characterization mode
+        if args.type == "delay":
+            source = create_source(args)
+            pipeline = DelayCharacterizationPipeline(
+                source,
+                max_lag=args.max_lag,
+                lag_step=args.lag_step,
+                jrp_m=args.jrp_m,
+                jrp_tau=args.jrp_tau,
+                jrp_rate=args.jrp_rate,
+                jrp_smooth_size=args.jrp_smooth_size,
+            ).run()
+
+            if args.stats:
+                opt = pipeline.get_optimal_lags()
+                if args.format == "json":
+                    print(json.dumps(opt, indent=2))
+                else:
+                    for k, v in opt.items():
+                        print(f"{k}: {v}")
+
+            output_dir = Path(args.output)
+            pipeline.export_results(str(output_dir))
+            return
+
         # Create data source
         source = create_source(args)
 

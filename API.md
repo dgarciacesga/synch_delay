@@ -397,46 +397,7 @@ Create animation of phase evolution on unit circle.
 
 ## Pipeline
 
-### SynchronizationPipeline
-
-```python
-class SynchronizationPipeline:
-    """End-to-end pipeline for synchronization analysis."""
-    
-    def __init__(self, data_source: DataSource):
-```
-
-**Methods:**
-
-#### run()
-```python
-def run(self) -> "SynchronizationPipeline":
-    """Execute the full pipeline."""
-```
-
-Returns self for chaining.
-
-#### plot_dashboard(**kwargs)
-```python
-def plot_dashboard(self, **kwargs):
-    """Create and show dashboard."""
-```
-
-#### animate(**kwargs)
-```python
-def animate(self, **kwargs):
-    """Create phase animation."""
-```
-
-#### get_stats()
-```python
-def get_stats(self) -> Dict[str, float]:
-    """Get analysis statistics."""
-```
-
----
-
-### DelayCharacterizationPipeline
+### DelayCharacterizationPipeline (Primary Pipeline)
 
 ```python
 class DelayCharacterizationPipeline:
@@ -492,6 +453,45 @@ All plot methods accept `true_delay_sec` parameter to mark the true delay on the
 ```python
 def export_results(self, output_dir: str = "results_delay"):
     """Export delay characterization results."""
+```
+
+---
+
+### SynchronizationPipeline
+
+```python
+class SynchronizationPipeline:
+    """End-to-end pipeline for synchronization analysis."""
+    
+    def __init__(self, data_source: DataSource):
+```
+
+**Methods:**
+
+#### run()
+```python
+def run(self) -> "SynchronizationPipeline":
+    """Execute the full pipeline."""
+```
+
+Returns self for chaining.
+
+#### plot_dashboard(**kwargs)
+```python
+def plot_dashboard(self, **kwargs):
+    """Create and show dashboard."""
+```
+
+#### animate(**kwargs)
+```python
+def animate(self, **kwargs):
+    """Create phase animation."""
+```
+
+#### get_stats()
+```python
+def get_stats(self) -> Dict[str, float]:
+    """Get analysis statistics."""
 ```
 
 ---

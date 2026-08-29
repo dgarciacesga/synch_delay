@@ -4,7 +4,47 @@ Complete usage examples for `synch_analysis`.
 
 ---
 
-## Quick Start
+## Quick Start: Delay Characterization (Primary Pipeline)
+
+```python
+from synch_analysis import LorenzDataSource, DelayCharacterizationPipeline
+
+# Lorenz attractor with sensor delay simulation
+lorenz = LorenzDataSource(
+    a=10.0, b=28.0, c=8.0/3.0,
+    initial_values=[0.01, 0, 0.3],
+    iterations=5000,
+    delay_steps=150,   # 1.5s delay at 100 Hz sampling
+    noise_std=0.05,    # optional measurement noise
+    sampling_rate=100.0
+)
+
+# Run delay characterization pipeline
+pipeline = DelayCharacterizationPipeline(
+    lorenz,
+    max_lag=300,
+    lag_step=1,
+    jrp_m=3, jrp_tau=1, jrp_rate=0.05, jrp_smooth_size=5
+).run()
+
+# Get optimal lags
+opt = pipeline.get_optimal_lags()
+print(f"Best Kuramoto lag: {opt['best_kuramoto_lag']} steps")
+print(f"Best JRP lag: {opt['best_jrp_lag']} steps")
+print(f"Best Combined lag: {opt['best_combined_lag']} steps")
+
+# View plots with true delay marker
+pipeline.plot_kuramoto(true_delay_sec=1.5)
+pipeline.plot_jrp(true_delay_sec=1.5)
+pipeline.plot_combined(true_delay_sec=1.5)
+
+# Export all results
+pipeline.export_results("results/lorenz_delay")
+```
+
+---
+
+## Quick Start: Synchronization Analysis
 
 ```python
 from synch_analysis import LorenzDataSource, SynchronizationPipeline
@@ -15,7 +55,7 @@ lorenz = LorenzDataSource(
     initial_values=[0.01, 0, 0.3],
     iterations=5000,
     delay_steps=150,   # 1.5s delay at 100 Hz sampling
-    noise_std=0.05,    # optional measurement noise
+    noise_std=0.05,
     sampling_rate=100.0
 )
 
@@ -42,10 +82,10 @@ export_results(pipeline, "results/lorenz_analysis")
 ### Lorenz Attractor
 
 ```python
-from synch_analysis import LorenzDataSource, SynchronizationPipeline
+from synch_analysis import LorenzDataSource, DelayCharacterizationPipeline
 import numpy as np
 
-# Classic chaotic regime with sensor delay
+# Classic chaotic regime with sensor delay - DELAY CHARACTERIZATION
 lorenz = LorenzDataSource(
     a=10.0,
     b=28.0,
@@ -59,8 +99,15 @@ lorenz = LorenzDataSource(
     sampling_rate=100.0
 )
 
-pipeline = SynchronizationPipeline(lorenz).run()
-pipeline.plot_dashboard(sliding_window=100)
+pipeline = DelayCharacterizationPipeline(
+    lorenz,
+    max_lag=300,
+    lag_step=1,
+    jrp_m=3, jrp_tau=1, jrp_rate=0.05, jrp_smooth_size=5
+).run()
+
+# Plot with true delay
+pipeline.plot_combined(true_delay_sec=1.5)
 ```
 
 **Variants:**
@@ -86,9 +133,14 @@ for delay in range(0, 300, 10):
         delay_steps=delay,
         noise_std=0.02
     )
-    pipeline = SynchronizationPipeline(lorenz).run()
-    stats = pipeline.get_stats()
-    print(f"Delay {delay:3d}: Mean R = {stats['mean_R']:.4f}")
+    pipeline = DelayCharacterizationPipeline(
+        lorenz,
+        max_lag=300,
+        lag_step=5,
+        jrp_m=3, jrp_tau=1, jrp_rate=0.05, jrp_smooth_size=5
+    ).run()
+    opt = pipeline.get_optimal_lags()
+    print(f"True delay {delay:3d}: Combined lag = {opt['best_combined_lag']:4d}")
 ```
 
 **Lag Convention:**
@@ -101,7 +153,7 @@ for delay in range(0, 300, 10):
 ### Sinusoidal Signals
 
 ```python
-from synch_analysis import SinusoidDataSource, SynchronizationPipeline
+from synch_analysis import SinusoidDataSource, DelayCharacterizationPipeline
 import numpy as np
 
 # Phase-locked with delay
@@ -117,8 +169,8 @@ sinusoid = SinusoidDataSource(
     sampling_rate=100.0
 )
 
-pipeline = SynchronizationPipeline(sinusoid).run()
-pipeline.plot_dashboard()
+pipeline = DelayCharacterizationPipeline(sinusoid, max_lag=50).run()
+pipeline.plot_combined()
 ```
 
 **Variants:**
@@ -153,7 +205,7 @@ sinusoid_fm = SinusoidDataSource(
 ### Coupled Oscillators (Kuramoto Model)
 
 ```python
-from synch_analysis import CoupledOscillatorDataSource, SynchronizationPipeline
+from synch_analysis import CoupledOscillatorDataSource, DelayCharacterizationPipeline
 import numpy as np
 
 # Strong coupling - should synchronize
@@ -167,8 +219,8 @@ coupled = CoupledOscillatorDataSource(
     sampling_rate=100.0
 )
 
-pipeline = SynchronizationPipeline(coupled).run()
-pipeline.plot_dashboard(sliding_window=200)
+pipeline = DelayCharacterizationPipeline(coupled, max_lag=100).run()
+pipeline.plot_combined()
 ```
 
 **Variants:**
@@ -205,7 +257,7 @@ coupled_5 = CoupledOscillatorDataSource(
 ### Belousov-Zhabotinsky Oscillator (Oregonator Model)
 
 ```python
-from synch_analysis import BelousovZhabotinskyDataSource, SynchronizationPipeline
+from synch_analysis import BelousovZhabotinskyDataSource, DelayCharacterizationPipeline
 
 # Classic oscillatory regime with sensor delay
 bz = BelousovZhabotinskyDataSource(
@@ -222,13 +274,12 @@ bz = BelousovZhabotinskyDataSource(
     transient=2000,           # Discard initial transient
 )
 
-pipeline = SynchronizationPipeline(bz).run()
-pipeline.plot_dashboard()
+pipeline = DelayCharacterizationPipeline(bz, max_lag=300).run()
+pipeline.plot_combined()
 
 # Get statistics
-stats = pipeline.get_stats()
-print(f"Mean R: {stats['mean_R']:.4f}")
-print(f"Sync ratio: {stats['sync_ratio']:.2%}")
+opt = pipeline.get_optimal_lags()
+print(f"Best Combined lag: {opt['best_combined_lag']} steps")
 ```
 
 **Variants:**
@@ -262,9 +313,14 @@ for delay in range(0, 300, 10):
         noise_std=0.02,
         transient=500
     )
-    pipeline = SynchronizationPipeline(bz).run()
-    stats = pipeline.get_stats()
-    print(f"Delay {delay:3d}: Mean R = {stats['mean_R']:.4f}")
+    pipeline = DelayCharacterizationPipeline(
+        bz,
+        max_lag=300,
+        lag_step=5,
+        jrp_m=3, jrp_tau=1, jrp_rate=0.05, jrp_smooth_size=5
+    ).run()
+    opt = pipeline.get_optimal_lags()
+    print(f"Delay {delay:3d}: Best combined lag = {opt['best_combined_lag']:4d}")
 ```
 
 **Lag Convention:**
@@ -276,9 +332,9 @@ for delay in range(0, 300, 10):
 ### Parquet Data (Industrial/Experimental)
 
 ```python
-from synch_analysis import ParquetDataSource, SynchronizationPipeline
+from synch_analysis import ParquetDataSource, DelayCharacterizationPipeline
 
-# Industrial sensor data
+# Industrial sensor data - DELAY CHARACTERIZATION
 parquet = ParquetDataSource(
     file_path="data/sensors.parquet",
     column_a="sensor_A",
@@ -290,8 +346,20 @@ parquet = ParquetDataSource(
     sampling_rate=1.0       # 1 Hz
 )
 
-pipeline = SynchronizationPipeline(parquet).run()
-pipeline.plot_dashboard(sliding_window=50)
+pipeline = DelayCharacterizationPipeline(
+    parquet,
+    max_lag=500,
+    lag_step=5,
+    jrp_m=5,
+    jrp_tau=1,
+    jrp_rate=0.3,
+    jrp_smooth_size=5,
+).run()
+
+# Plot with true delay marker (in seconds)
+pipeline.plot_kuramoto(true_delay_sec=90)
+pipeline.plot_jrp(true_delay_sec=90)
+pipeline.plot_combined(true_delay_sec=90)
 ```
 
 **Timestamp-based slicing:**
@@ -307,6 +375,12 @@ parquet = ParquetDataSource(
     lag=None,
     sampling_rate=1.0
 )
+
+pipeline = DelayCharacterizationPipeline(
+    parquet,
+    max_lag=500,
+    lag_step=5
+).run()
 ```
 
 **With time lag analysis (manual):**
@@ -536,7 +610,7 @@ plt.show()
 
 ---
 
-### Delay Characterization Sweep
+### Delay Characterization Sweep (Systematic Validation)
 
 ```python
 from synch_analysis import (
@@ -593,7 +667,7 @@ plt.show()
 
 ## Export Examples
 
-### Export All Results
+### Export All Results (SynchronizationPipeline)
 
 ```python
 from synch_analysis import LorenzDataSource, SynchronizationPipeline, export_results
@@ -695,6 +769,9 @@ pipeline.export_results("results/lorenz_delay")
 ## CLI Examples
 
 ```bash
+# Delay characterization - PRIMARY COMMAND
+synch-analysis delay --file data/sensors.pqt --col-a varA --col-b varB --max-lag 600 --output results/delay
+
 # Lorenz attractor
 synch-analysis lorenz --iterations 2000 --output results/lorenz --dashboard --stats
 
@@ -709,9 +786,6 @@ synch-analysis parquet --file data/sensors.pqt --col-a varA --col-b varB --windo
 
 # Belousov-Zhabotinsky (Oregonator model)
 synch-analysis bz --iterations 10000 --delay-steps 100 --noise 0.05 --output results/bz --dashboard
-
-# Delay characterization
-synch-analysis delay --file data/sensors.pqt --col-a varA --col-b varB --max-lag 600 --output results/delay
 
 # JSON output for scripting
 synch-analysis lorenz --iterations 1000 --stats --format json > stats.json
@@ -736,25 +810,26 @@ source = CoupledOscillatorDataSource(
     noise_std=0.02
 )
 
-# 3. Run pipeline
-pipeline = SynchronizationPipeline(source).run()
+# 3. Run DELAY CHARACTERIZATION pipeline (primary)
+pipeline = DelayCharacterizationPipeline(
+    source,
+    max_lag=200,
+    lag_step=1,
+    jrp_m=3, jrp_tau=1, jrp_rate=0.05, jrp_smooth_size=5
+).run()
 
 # 4. Analyze results
-stats = pipeline.get_stats()
-print("=== Synchronization Statistics ===")
-for k, v in stats.items():
-    print(f"  {k}: {v:.6f}")
+opt = pipeline.get_optimal_lags()
+print("=== Optimal Lags ===")
+for k, v in opt.items():
+    print(f"  {k}: {v} steps ({v/100:.3f}s at 100 Hz)")
 
 # 5. Visualize
-fig = pipeline.plot_dashboard(sliding_window=100, n_signal_samples=500)
+fig = pipeline.plot_combined()
 plt.show()
 
 # 6. Export
-export_results(pipeline, "results/experiment_001")
-
-# 7. Optional: Create animation
-anim = pipeline.animate(interval=50, trail_length=200)
-anim.save("results/experiment_001/phase_evolution.gif", writer="pillow", fps=20)
+pipeline.export_results("results/experiment_001")
 ```
 
 ---
@@ -768,16 +843,16 @@ from synch_analysis import *
 # Enable inline plotting
 %matplotlib inline
 
-# Run analysis
-source = LorenzDataSource(iterations=3000)
-pipeline = SynchronizationPipeline(source).run()
+# Run DELAY CHARACTERIZATION
+source = LorenzDataSource(iterations=3000, delay_steps=150)
+pipeline = DelayCharacterizationPipeline(source, max_lag=300).run()
 
 # Display dashboard inline
-pipeline.plot_dashboard()
+pipeline.plot_combined(true_delay_sec=1.5)
 
 # Display stats as table
 import pandas as pd
-pd.DataFrame([pipeline.get_stats()]).T.style.format("{:.6f}")
+pd.DataFrame([pipeline.get_optimal_lags()]).T.style.format("{:.0f}")
 ```
 
 ---

@@ -32,7 +32,7 @@ Technical architecture and design decisions for `synch_analysis`.
 │         │                                                                 │
 │         ▼                                                                 │
 │  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │                  DelayCharacterizationPipeline                      │  │
+│  │              DelayCharacterizationPipeline (PRIMARY)                │  │
 │  │  (Lag sweep orchestration via Kuramoto + Joint Recurrence Plots)    │  │
 │  └──────────────────────────────────────────────────────────────────────┘  │
 │                                                                           │
@@ -47,7 +47,6 @@ Technical architecture and design decisions for `synch_analysis`.
 │             └──────────┘      └──────────┘      └──────────┘                │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
-
 ```
 
 ---
@@ -367,9 +366,31 @@ All notebooks use publication-quality settings:
 
 ## Pipeline (`pipeline.py`)
 
+### DelayCharacterizationPipeline (Primary Pipeline)
+
+**Purpose:** Automates the process of finding the optimal time lag between two signals. This is the **primary pipeline** for industrial and scientific applications where the true delay between sensors is unknown.
+
+**Workflow:**
+1. **Lag Sweep**: Iterates through a range of lags from `-max_lag` to `+max_lag`.
+2. **Kuramoto Sweep**: Computes mean order parameter R and synchronization metrics for each lag.
+3. **JRP Sweep**: Computes Joint Recurrence Plot metrics (RR, DET, LAM) for each lag.
+4. **Scoring**: Normalizes and combines both methods into a single `combined_score`.
+5. **Optimization**: Identifies the lag that maximizes the scores.
+
+**Key Methods:**
+- `run()`: Executes the full sweep and scoring process.
+- `get_results()`: Returns a DataFrame with the full lag sweep.
+- `get_optimal_lags()`: Returns the best lags for Kuramoto, JRP, and Combined.
+- `plot_kuramoto()`, `plot_jrp()`, `plot_combined()`: Visualizes the score curves.
+- `export_results()`: Saves results to Parquet, PNGs, and a summary text file.
+
+**Plot Methods:** All accept `true_delay_sec` parameter to mark true delay on plots.
+
+---
+
 ### SynchronizationPipeline
 
-**Purpose:** Facade pattern - simplifies common workflow.
+**Purpose:** Facade pattern - simplifies common synchronization analysis workflow.
 
 ```python
 class SynchronizationPipeline:
@@ -394,28 +415,6 @@ class SynchronizationPipeline:
 ```
 
 **Fluent interface:** Returns `self` for chaining.
-
----
-
-### DelayCharacterizationPipeline
-
-**Purpose:** Automates the process of finding the optimal time lag between two signals.
-
-**Workflow:**
-1. **Lag Sweep**: Iterates through a range of lags from `-max_lag` to `+max_lag`.
-2. **Kuramoto Sweep**: Computes mean order parameter R and synchronization metrics for each lag.
-3. **JRP Sweep**: Computes Joint Recurrence Plot metrics (RR, DET, LAM) for each lag.
-4. **Scoring**: Normalizes and combines both methods into a single `combined_score`.
-5. **Optimization**: Identifies the lag that maximizes the scores.
-
-**Key Methods:**
-- `run()`: Executes the full sweep and scoring process.
-- `get_results()`: Returns a DataFrame with the full lag sweep.
-- `get_optimal_lags()`: Returns the best lags for Kuramoto, JRP, and Combined.
-- `plot_kuramoto()`, `plot_jrp()`, `plot_combined()`: Visualizes the score curves.
-- `export_results()`: Saves results to Parquet, PNGs, and a summary text file.
-
-**Plot Methods:** All accept `true_delay_sec` parameter to mark true delay on plots.
 
 ---
 
