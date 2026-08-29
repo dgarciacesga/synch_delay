@@ -54,3 +54,4 @@ dmypy.json
 
 # Ruff
 .ruff_cache/
+data/datos_ind.pqt
