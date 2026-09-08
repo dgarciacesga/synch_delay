@@ -769,10 +769,13 @@ pipeline.export_results("results/lorenz_delay")
 ## CLI Examples
 
 ```bash
-# Delay characterization - PRIMARY COMMAND
-synch-analysis delay --file data/sensors.pqt --col-a varA --col-b varB --max-lag 600 --output results/delay
+# Delay characterization - PRIMARY COMMAND (uses DelayCharacterizationPipeline)
+synch-analysis delay --source-type parquet --file data/sensors.pqt --col-a varA --col-b varB --max-lag 600 --output results/delay
 
-# Lorenz attractor
+# Lorenz attractor with sensor delay (delay characterization mode)
+synch-analysis delay --source-type lorenz --iterations 5000 --delay-steps 150 --max-lag 300 --output results/lorenz_delay
+
+# Lorenz attractor (synchronization analysis mode)
 synch-analysis lorenz --iterations 2000 --output results/lorenz --dashboard --stats
 
 # Sinusoid with delay
@@ -919,6 +922,26 @@ print(f"Best JRP lag: {best_jrp}s")
 
 ---
 
+### Cross-Correlation & Mutual Information Delay Characterization (Industrial)
+
+```bash
+jupyter notebook notebooks/delay_char_crosscorr_mi_industrial.ipynb
+```
+
+Analyzes delay characterization using cross-correlation and mutual information as alternative methods to Kuramoto+JRP.
+
+**Analysis pipeline:**
+1. **Cross-correlation** → Find lag maximizing correlation
+2. **Mutual Information** → Find lag maximizing MI (nonlinear dependency)
+3. **Comparison** → Compare with Kuramoto+JRP results
+
+**Key metrics:**
+- Cross-correlation peak lag
+- Mutual information peak lag
+- Comparison with physical transit time
+
+---
+
 ### BZ Delayed Signal Analysis
 
 ```bash
@@ -950,6 +973,16 @@ All notebooks use publication-quality figure settings:
 
 ---
 
+### Cross-Correlation & Mutual Information Delay Characterization (BZ)
+
+```bash
+jupyter notebook notebooks/delay_char_crosscorr_mi_bz.ipynb
+```
+
+Analyzes delay characterization using cross-correlation and mutual information on BZ delayed signals.
+
+---
+
 ### Lorenz Delayed Signal Analysis
 
 ```bash
@@ -977,3 +1010,47 @@ All notebooks use publication-quality figure settings:
 - White background
 - No grid lines
 - High DPI (300) suitable for journal publication
+
+---
+
+### Cross-Correlation & Mutual Information Delay Characterization (Lorenz)
+
+```bash
+jupyter notebook notebooks/delay_char_crosscorr_mi_lorenz.ipynb
+```
+
+Analyzes delay characterization using cross-correlation and mutual information on Lorenz delayed signals.
+
+---
+
+### Results & Output Notebooks
+
+```bash
+jupyter notebook notebooks/kuramoto_jrp_output_varA_varB.ipynb
+jupyter notebook notebooks/kuramoto_jrp_output_bz_delayed.ipynb
+jupyter notebook notebooks/kuramoto_jrp_output_lorenz_delayed.ipynb
+```
+
+These notebooks load and visualize results from the analysis notebooks:
+- Load saved Parquet results
+- Create publication-quality figures
+- Compare optimal lags with true delays
+- Generate summary tables
+
+---
+
+### Method Comparison Notebooks
+
+```bash
+jupyter notebook notebooks/compare_methods_industrial.ipynb
+jupyter notebook notebooks/compare_methods_bz.ipynb
+jupyter notebook notebooks/compare_methods_lorenz.ipynb
+```
+
+Compare multiple delay characterization methods side-by-side:
+- **Kuramoto + JRP** (primary pipeline)
+- **Cross-correlation** (linear)
+- **Mutual Information** (nonlinear)
+- **Physical/real lag** (ground truth)
+
+**Output:** Comparison tables and visualizations showing accuracy of each method.
