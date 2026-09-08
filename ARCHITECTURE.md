@@ -477,10 +477,21 @@ main()
   └─ export_results(pipeline, args.output)
 ```
 
+### Delay Characterization Mode (Primary Pipeline)
+
+```
+main() [type=delay]
+  ├─ create_source(args) → DataSource
+  ├─ DelayCharacterizationPipeline(source, max_lag, lag_step, jrp_params).run()
+  ├─ pipeline.get_optimal_lags() → print (if --stats)
+  └─ pipeline.export_results(args.output)
+```
+
 **Argument structure:**
 - Positional: `type` (lorenz|sinusoid|coupled|parquet|bz|delay)
-- Common: `--output`, `--dashboard`, `--stats`, `--format`
+- Common: `--output`, `--dashboard`, `--stats`, `--format`, `--sampling-rate`
 - Type-specific: Grouped by source type
+- Delay-specific: `--source-type`, `--max-lag`, `--lag-step`, `--jrp-m`, `--jrp-tau`, `--jrp-rate`, `--jrp-smooth-size`
 
 **Entry point:** `synch-analysis` (defined in `pyproject.toml`)
 

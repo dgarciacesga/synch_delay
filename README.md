@@ -7,6 +7,7 @@ A unified Python framework for analyzing synchronization in time series data usi
 - **Multiple Data Sources**: Experimental/industrial (Parquet), Lorenz attractor, Sinusoidal, Coupled Oscillators (Kuramoto model), Belousov-Zhabotinsky (Oregonator model)
 - **Core Analysis**: Hilbert transform, Instantaneous phase, Kuramoto order parameter R(t), Phase difference
 - **Delay Characterization**: Automated lag sweep combining Kuramoto phase synchronization and JRP state-space synchronization — *primary pipeline for finding optimal time delays*
+- **Cross-Correlation & Mutual Information**: Alternative delay characterization methods for comparison
 - **Visualization**: Comprehensive dashboards, Phase portraits, Animations, Lag sweep plots
 - **Batch Comparison**: Compare synchronization across different data types
 - **Export**: CSV statistics, PNG dashboards, Time series data, Parquet results
@@ -235,14 +236,22 @@ synch_delay/
 │   ├── jrp.py             # Joint Recurrence Plot functions
 │   └── cli.py             # Command-line interface
 ├── notebooks/             # Example notebooks
-│   ├── synch_analysis_unified.ipynb            # Complete framework demo
-│   ├── delay_char_industrial.ipynb             # Industrial delay characterization
+│   ├── synch_analysis_unified.ipynb            # Complete framework demo (from package)
+│   ├── delay_char_industrial.ipynb             # Industrial delay characterization (Parquet)
 │   ├── delay_char_lorenz_delayed.ipynb         # Lorenz delay characterization
 │   ├── delay_char_bz_delayed.ipynb             # BZ delay characterization
+│   ├── delay_char_crosscorr_mi_lorenz.ipynb    # Cross-corr & MI delay characterization (Lorenz)
+│   ├── delay_char_crosscorr_mi_bz.ipynb        # Cross-corr & MI delay characterization (BZ)
+│   ├── delay_char_crosscorr_mi_industrial.ipynb # Cross-corr & MI delay characterization (Industrial)
 │   ├── kuramoto_jrp_analysis_varA_varB.ipynb   # varA/varB combined Kuramoto+JRP
 │   ├── kuramoto_jrp_analysis_bz_delayed.ipynb  # BZ delayed JRP analysis
 │   ├── kuramoto_jrp_analysis_lorenz_delayed.ipynb # Lorenz delayed JRP analysis
-│   └── kuramoto_jrp_output_*.ipynb             # Executable output notebooks
+│   ├── kuramoto_jrp_output_varA_varB.ipynb     # BZ output notebook
+│   ├── kuramoto_jrp_output_bz_delayed.ipynb    # BZ output notebook
+│   ├── kuramoto_jrp_output_lorenz_delayed.ipynb # Lorenz output notebook
+│   ├── compare_methods_lorenz.ipynb            # Compare methods (Lorenz)
+│   ├── compare_methods_bz.ipynb                # Compare methods (BZ)
+│   └── compare_methods_industrial.ipynb        # Compare methods (Industrial)
 ├── data/                  # Data files (Parquet, etc.)
 ├── results/               # Analysis outputs
 ├── requirements.txt
@@ -258,14 +267,31 @@ See `notebooks/` for complete examples:
 jupyter notebook notebooks/
 ```
 
-Available notebooks:
-- `synch_analysis_unified.ipynb` - Complete framework demo
+### Core Framework Notebooks
+- `synch_analysis_unified.ipynb` - Complete framework demo (self-contained implementation)
 - `delay_char_industrial.ipynb` - Industrial delay characterization (Parquet data)
 - `delay_char_lorenz_delayed.ipynb` - Lorenz delay characterization
 - `delay_char_bz_delayed.ipynb` - BZ delay characterization
-- `kuramoto_jrp_analysis_varA_varB.ipynb` - varA/varB combined Kuramoto + JRP analysis
-- `kuramoto_jrp_analysis_bz_delayed.ipynb` - BZ delayed JRP analysis
-- `kuramoto_jrp_analysis_lorenz_delayed.ipynb` - Lorenz delayed signal analysis
+
+### Cross-Correlation & Mutual Information Notebooks
+- `delay_char_crosscorr_mi_lorenz.ipynb` - Cross-correlation & MI delay characterization (Lorenz)
+- `delay_char_crosscorr_mi_bz.ipynb` - Cross-correlation & MI delay characterization (BZ)
+- `delay_char_crosscorr_mi_industrial.ipynb` - Cross-correlation & MI delay characterization (Industrial)
+
+### Kuramoto + JRP Analysis Notebooks
+- `kuramoto_jrp_analysis_varA_varB.ipynb` - varA/varB combined Kuramoto+JRP analysis
+- `kuramoto_jrp_analysis_bz_delayed.ipynb` - BZ delayed signal JRP analysis
+- `kuramoto_jrp_analysis_lorenz_delayed.ipynb` - Lorenz delayed signal JRP analysis
+
+### Output/Results Notebooks
+- `kuramoto_jrp_output_varA_varB.ipynb` - varA/varB results and visualizations
+- `kuramoto_jrp_output_bz_delayed.ipynb` - BZ delayed results
+- `kuramoto_jrp_output_lorenz_delayed.ipynb` - Lorenz delayed results
+
+### Comparison Notebooks
+- `compare_methods_lorenz.ipynb` - Compare delay characterization methods (Lorenz)
+- `compare_methods_bz.ipynb` - Compare delay characterization methods (BZ)
+- `compare_methods_industrial.ipynb` - Compare delay characterization methods (Industrial)
 
 **All JRP notebooks include real lag calculation:** Physical transport delay computed and marked on plots for comparison with optimal synchronization lag.
 

@@ -5,22 +5,26 @@ Complete API reference for `synch_analysis` package.
 ## Public API (`synch_analysis`)
 
 ```python
- from synch_analysis import (
-     SignalPair,
-     DataSource,
-     ParquetDataSource,
-     LorenzDataSource,
-     SinusoidDataSource,
-     CoupledOscillatorDataSource,
-     BelousovZhabotinskyDataSource,
-     SynchronizationAnalyzer,
-     SynchronizationVisualizer,
-     SynchronizationPipeline,
-     DelayCharacterizationPipeline,
-     compare_data_sources,
-     export_results,
- )
-
+from synch_analysis import (
+    SignalPair,
+    DataSource,
+    ParquetDataSource,
+    LorenzDataSource,
+    SinusoidDataSource,
+    CoupledOscillatorDataSource,
+    BelousovZhabotinskyDataSource,
+    SynchronizationAnalyzer,
+    SynchronizationVisualizer,
+    SynchronizationPipeline,
+    DelayCharacterizationPipeline,
+    compare_data_sources,
+    export_results,
+    lag_sweep_kuramoto,
+    lag_sweep_jrp,
+    compute_scores,
+    find_optimal_lags,
+    compute_jrp_metrics,
+)
 ```
 
 ---
@@ -520,6 +524,114 @@ def export_results(pipeline: SynchronizationPipeline, output_dir: str = "results
 - `sync_stats.csv`: Summary statistics
 - `sync_timeseries.csv`: Time series (time, R, phase_diff, phase_a, phase_b)
 - `sync_dashboard.png`: Dashboard figure
+
+---
+
+## Joint Recurrence Plot (JRP) Functions
+
+### embed_time_series
+```python
+def embed_time_series(x: np.ndarray, m: int = 3, tau: int = 1) -> np.ndarray:
+    """Time-delay embedding."""
+```
+
+### recurrence_plot
+```python
+def recurrence_plot(
+    x: np.ndarray, threshold: Optional[float] = None, rate: float = 0.05
+) -> Tuple[np.ndarray, float]:
+    """Compute recurrence plot for a single time series."""
+```
+
+### joint_recurrence_plot
+```python
+def joint_recurrence_plot(rp1: np.ndarray, rp2: np.ndarray) -> np.ndarray:
+    """Compute joint recurrence plot from two individual RPs."""
+```
+
+### jrp_rqa_metrics
+```python
+def jrp_rqa_metrics(jrp: np.ndarray, min_diag: int = 2, min_vert: int = 2) -> Dict[str, float]:
+    """Compute Recurrence Quantification Analysis metrics from JRP."""
+```
+
+**Returns:** Dictionary with `RR`, `DET`, `LAM`, `max_diag`, `mean_diag`, `max_vert`
+
+### compute_jrp_metrics
+```python
+def compute_jrp_metrics(
+    signal_a: np.ndarray,
+    signal_b: np.ndarray,
+    m: int = 3,
+    tau: int = 1,
+    rate: float = 0.05,
+    min_diag: int = 2,
+    min_vert: int = 2,
+    smooth_size: int = 5,
+) -> Dict[str, float]:
+    """Compute full JRP metrics for a signal pair."""
+```
+
+### lag_sweep_jrp
+```python
+def lag_sweep_jrp(
+    signal_a: np.ndarray,
+    signal_b: np.ndarray,
+    lags: np.ndarray,
+    m: int = 3,
+    tau: int = 1,
+    rate: float = 0.05,
+    smooth_size: int = 5,
+    sampling_rate: float = 1.0,
+) -> pd.DataFrame:
+    """Perform JRP lag sweep.
+
+    Positive lag means signal A is delayed (shifted forward) relative to signal B.
+    """
+```
+
+**Returns:** DataFrame with columns: `lag`, `lag_sec`, `jrp_RR`, `jrp_DET`, `jrp_LAM`, `jrp_max_diag`, `jrp_mean_diag`, `jrp_max_vert`
+
+### lag_sweep_kuramoto
+```python
+def lag_sweep_kuramoto(
+    signal_a: np.ndarray,
+    signal_b: np.ndarray,
+    lags: np.ndarray,
+    sampling_rate: float = 100.0,
+) -> pd.DataFrame:
+    """Perform Kuramoto lag sweep.
+
+    Positive lag means signal A is delayed (shifted forward) relative to signal B.
+    """
+```
+
+**Returns:** DataFrame with columns: `lag`, `lag_sec`, `r_mean`, `frac_above_07`, `max_sustained_sec`
+
+### compute_scores
+```python
+def compute_scores(
+    kuramoto_df: pd.DataFrame,
+    jrp_df: pd.DataFrame,
+    max_lag: int,
+) -> pd.DataFrame:
+    """Compute combined scores from Kuramoto and JRP results."""
+```
+
+**Scoring criteria:**
+- **Kuramoto**: `normalized(frac_above_07) * normalized(r_mean)`
+- **JRP**: `normalized(RR)` only (excluding extreme lags ±max_lag)
+- **Combined**: Arithmetic mean of both normalized scores
+
+**Returns:** Merged DataFrame with added columns: `kuramoto_score`, `jrp_score`, `combined_score`
+
+### find_optimal_lags
+```python
+def find_optimal_lags(results_df: pd.DataFrame, max_lag: int) -> Dict[str, int]:
+    """Find optimal lags from combined results."""
+```
+
+**Returns:** Dictionary with `best_kuramoto_lag`, `best_jrp_lag`, `best_combined_lag`
 
 ---
 
