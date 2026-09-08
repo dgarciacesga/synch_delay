@@ -1,27 +1,27 @@
 Delay Characterization Summary
 ==============================
 
-Data source: Lorenz attractor: a=10.0, b=28.0, c=2.667, var=x, delay=50 steps, noise=0.05
+Data source: Lorenz attractor: a=10.0, b=28.0, c=2.667, var=x, delay=30 steps, noise=0.05
 Sampling rate: 100.0 Hz
-Signal A: Lorenz x (delayed by 50 steps)
+Signal A: Lorenz x (delayed by 30 steps)
 Signal B: Lorenz x (source)
 Samples: 5001
-Lag range: ±150 steps (lag step: 1)
+Lag range: ±90 steps (lag step: 1)
 
 Optimal Lags:
-  Kuramoto: -50 steps (-0.500s)
-  JRP:      -50 steps (-0.500s)
-  Combined: -50 steps (-0.500s)
+  Kuramoto: -30 steps (-0.300s)
+  JRP:      -30 steps (-0.300s)
+  Combined: -30 steps (-0.300s)
 
 Kuramoto at best lag:
-  r_mean: 0.9907
-  frac_above_07: 0.9854
-  max_sustained_sec: 49.280s
-  kuramoto_score: 0.9958
+  r_mean: 0.9932
+  frac_above_07: 0.9890
+  max_sustained_sec: 49.460s
+  kuramoto_score: 0.9962
 
 JRP at best lag:
   RR: 0.0488
   DET: 0.9519
-  LAM: 0.9808
+  LAM: 0.9804
   jrp_score: 1.0000
 

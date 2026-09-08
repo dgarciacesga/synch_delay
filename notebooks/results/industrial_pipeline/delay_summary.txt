@@ -5,23 +5,23 @@ Data source: Parquet: ../data/datos_ind.pqt [VarA vs VarB]
 Sampling rate: 1.0 Hz
 Signal A: VarA
 Signal B: VarB
-Samples: 1515
-Lag range: ±150 steps (lag step: 1)
+Samples: 1199
+Lag range: Â±500 steps (lag step: 5)
 
 Optimal Lags:
-  Kuramoto: 83 steps (83.000s)
-  JRP:      84 steps (84.000s)
-  Combined: 83 steps (83.000s)
+  Kuramoto: 90 steps (90.000s)
+  JRP:      90 steps (90.000s)
+  Combined: 90 steps (90.000s)
 
 Kuramoto at best lag:
-  r_mean: 0.8434
-  frac_above_07: 0.8191
-  max_sustained_sec: 45.000s
-  kuramoto_score: 0.9818
+  r_mean: 0.8377
+  frac_above_07: 0.8157
+  max_sustained_sec: 74.000s
+  kuramoto_score: 0.9941
 
 JRP at best lag:
-  RR: 0.1269
-  DET: 0.9509
-  LAM: 0.9739
+  RR: 0.1340
+  DET: 0.9860
+  LAM: 0.9930
   jrp_score: 1.0000
 
