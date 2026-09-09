@@ -127,7 +127,7 @@ Examples:
         "--format", choices=["json", "csv"], default="json", help="Output format for stats"
     )
     common_parser.add_argument(
-        "--sampling-rate", type=float, default=100.0, help="Sampling rate in Hz"
+        "--sampling-rate", type=float, default=100.0, help="Sampling rate (samples per time unit)"
     )
 
     # Lorenz subparser

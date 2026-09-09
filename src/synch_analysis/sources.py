@@ -85,6 +85,7 @@ class ParquetDataSource(DataSource):
             name_a=self.column_a,
             name_b=self.column_b,
             sampling_rate=self.sampling_rate,
+            time_unit="s",
         )
 
     def get_description(self) -> str:

@@ -16,6 +16,7 @@ class SignalPair:
     name_a: str = "Signal A"
     name_b: str = "Signal B"
     sampling_rate: float = 1.0
+    time_unit: str = "t.u."
 
     def __post_init__(self):
         if self.time is None:
@@ -25,6 +26,13 @@ class SignalPair:
     @property
     def n_samples(self) -> int:
         return len(self.signal_a)
+
+    @property
+    def freq_unit(self) -> str:
+        """Return frequency unit corresponding to time unit."""
+        if self.time_unit == "s":
+            return "Hz"
+        return "1/(t.u.)"
 
 
 class DataSource(ABC):

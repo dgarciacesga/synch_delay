@@ -52,10 +52,12 @@ class SignalPair:
 - `signal_a`, `signal_b`: numpy arrays of equal length
 - `time`: Optional time array (auto-generated if None)
 - `name_a`, `name_b`: Signal identifiers
-- `sampling_rate`: Sampling frequency in Hz
+- `sampling_rate`: Sampling rate (samples per time unit)
+- `time_unit`: Time unit label (default: "t.u." for synthetic, "s" for industrial data)
 
 **Properties:**
 - `n_samples`: Number of samples in signals
+- `freq_unit`: Frequency unit corresponding to time unit ("1/(t.u.)" or "Hz")
 
 ---
 
@@ -103,7 +105,7 @@ class ParquetDataSource(DataSource):
 - `index_start`, `index_end`: Row slice indices (int for positional, str for timestamp)
 - `window`: Rolling window for smoothing (use 1 for no smoothing, default: 60)
 - `lag`: Time lag to apply (positive = delay A relative to B)
-- `sampling_rate`: Output sampling rate
+- `sampling_rate`: Output sampling rate in Hz (for industrial data with real timestamps)
 
 **Processing:**
 1. Load columns from Parquet
@@ -171,13 +173,13 @@ class LorenzDataSource(DataSource):
 
 **Parameters:**
 - `a`, `b`, `c`: Lorenz system parameters (default: classic chaotic regime)
-- `dt`: Time step for integration
+- `dt`: Time step for integration (dimensionless)
 - `initial_values`: Initial [x, y, z] (default: [0.01, 0, 0.3])
 - `iterations`: Number of integration steps
 - `variable`: Which variable to extract ("x", "y", or "z")
 - `delay_steps`: Sensor delay in time steps (default: 0). Creates delayed version of signal A
 - `noise_std`: Optional Gaussian noise std for delayed signal
-- `sampling_rate`: Output sampling rate
+- `sampling_rate`: Output sampling rate in samples/t.u. (default: 100.0)
 
 **Lag Convention:**
 - Positive `delay_steps` means signal A is delayed relative to signal B
@@ -207,11 +209,11 @@ class SinusoidDataSource(DataSource):
 
 **Parameters:**
 - `ph0_a`, `ph0_b`: Initial phase offsets (radians)
-- `frq_a`, `frq_b`: Frequency multipliers
+- `frq_a`, `frq_b`: Frequency multipliers (in 1/t.u.)
 - `pers`: Number of periods
-- `delay_a`, `delay_b`: Time delays
+- `delay_a`, `delay_b`: Delays (in t.u.)
 - `iterations`: Number of samples
-- `sampling_rate`: Output sampling rate
+- `sampling_rate`: Output sampling rate in samples/t.u. (default: 1.0)
 
 **Signal formula:**
 ```
@@ -241,11 +243,11 @@ class CoupledOscillatorDataSource(DataSource):
 **Parameters:**
 - `n_oscillators`: Number of oscillators (minimum 2)
 - `coupling_strength`: Coupling parameter K
-- `natural_freqs`: Array of natural frequencies (auto-generated if None)
-- `dt`: Integration time step
-- `duration`: Total simulation time
+- `natural_freqs`: Array of natural frequencies (auto-generated if None, in 1/t.u.)
+- `dt`: Integration time step (dimensionless)
+- `duration`: Total simulation time (in t.u.)
 - `noise_std`: Gaussian noise standard deviation
-- `sampling_rate`: Output sampling rate
+- `sampling_rate`: Output sampling rate in samples/t.u. (default: 100.0)
 
 **Model (Kuramoto):**
 ```
@@ -280,13 +282,13 @@ class BelousovZhabotinskyDataSource(DataSource):
 - `f`: Stoichiometric parameter (default: 1.0, must be > 0.5 for oscillation)
 - `q`: Small parameter (default: 0.05, typically 1e-4 to 0.1)
 - `eps`: Time-scale separation parameter (default: 0.02, typically 0.01-0.1)
-- `dt`: Integration time step (default: 0.01)
+- `dt`: Integration time step (dimensionless, default: 0.01)
 - `initial_values`: Initial [x, z] values (default: [0.1, 0.1])
 - `iterations`: Number of integration steps (default: 10000)
 - `variable`: Which variable to extract ("x" or "z") (default: "x")
 - `delay_steps`: Sensor delay in time steps (default: 100). Creates delayed version of signal A
 - `noise_std`: Gaussian noise standard deviation (default: 0.05)
-- `sampling_rate`: Output sampling rate in Hz (default: 100.0)
+- `sampling_rate`: Output sampling rate in samples/t.u. (default: 100.0)
 - `transient`: Number of initial steps to discard (default: 2000)
 
 **Model (Oregonator, 2-variable reduced form):**
@@ -590,7 +592,7 @@ def lag_sweep_jrp(
     """
 ```
 
-**Returns:** DataFrame with columns: `lag`, `lag_sec`, `jrp_RR`, `jrp_DET`, `jrp_LAM`, `jrp_max_diag`, `jrp_mean_diag`, `jrp_max_vert`
+**Returns:** DataFrame with columns: `lag`, `lag_tu`, `jrp_RR`, `jrp_DET`, `jrp_LAM`, `jrp_max_diag`, `jrp_mean_diag`, `jrp_max_vert`
 
 ### lag_sweep_kuramoto
 ```python
@@ -606,7 +608,7 @@ def lag_sweep_kuramoto(
     """
 ```
 
-**Returns:** DataFrame with columns: `lag`, `lag_sec`, `r_mean`, `frac_above_07`, `max_sustained_sec`
+**Returns:** DataFrame with columns: `lag`, `lag_tu`, `r_mean`, `frac_above_07`, `max_sustained_tu`
 
 ### compute_scores
 ```python

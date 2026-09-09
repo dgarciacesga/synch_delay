@@ -14,7 +14,7 @@ lorenz = LorenzDataSource(
     a=10.0, b=28.0, c=8.0/3.0,
     initial_values=[0.01, 0, 0.3],
     iterations=5000,
-    delay_steps=150,   # 1.5s delay at 100 Hz sampling
+    delay_steps=150,   # 150 steps delay at 100 samples/t.u.
     noise_std=0.05,    # optional measurement noise
     sampling_rate=100.0
 )
@@ -54,7 +54,7 @@ lorenz = LorenzDataSource(
     a=10.0, b=28.0, c=8.0/3.0,
     initial_values=[0.01, 0, 0.3],
     iterations=5000,
-    delay_steps=150,   # 1.5s delay at 100 Hz sampling
+    delay_steps=150,   # 150 steps delay at 100 samples/t.u.
     noise_std=0.05,
     sampling_rate=100.0
 )
@@ -268,7 +268,7 @@ bz = BelousovZhabotinskyDataSource(
     initial_values=[0.1, 0.1],
     iterations=10000,
     variable="x",             # or "z"
-    delay_steps=100,          # Simulated sensor delay (1s at 100 Hz)
+    delay_steps=100,          # Simulated sensor delay (100 steps at 100 samples/t.u.)
     noise_std=0.05,           # Measurement noise
     sampling_rate=100.0,
     transient=2000,           # Discard initial transient
@@ -343,7 +343,7 @@ parquet = ParquetDataSource(
     index_end=10000,
     window=60,              # 60-sample rolling mean
     lag=None,               # No time lag
-    sampling_rate=1.0       # 1 Hz
+    sampling_rate=1.0       # 1 Hz (industrial data with real timestamps)
 )
 
 pipeline = DelayCharacterizationPipeline(
@@ -825,7 +825,7 @@ pipeline = DelayCharacterizationPipeline(
 opt = pipeline.get_optimal_lags()
 print("=== Optimal Lags ===")
 for k, v in opt.items():
-    print(f"  {k}: {v} steps ({v/100:.3f}s at 100 Hz)")
+    print(f"  {k}: {v} steps ({v/100:.3f} t.u. at 100 samples/t.u.)")
 
 # 5. Visualize
 fig = pipeline.plot_combined()
@@ -990,7 +990,7 @@ jupyter notebook notebooks/delay_char_lorenz_delayed.ipynb
 jupyter notebook notebooks/kuramoto_jrp_analysis_lorenz_delayed.ipynb
 ```
 
-These analyze synchronization between a Lorenz x-variable and its delayed version (true delay: 150 steps = 1.5s at 100 Hz).
+These analyze synchronization between a Lorenz x-variable and its delayed version (true delay: 150 steps = 1.5 t.u. at 100 samples/t.u.).
 
 **Analysis pipeline:**
 1. **Hilbert transform** → Extract instantaneous phase
@@ -1003,7 +1003,7 @@ These analyze synchronization between a Lorenz x-variable and its delayed versio
 - **JRP**: Normalized Recurrence Rate (RR) as sole criterion, excluding extreme lags (±max_lag)
 - **Combined**: Arithmetic mean of both normalized scores
 
-**True delay:** Known to be 150 steps (1.5s), used as ground truth for validation.
+**True delay:** Known to be 150 steps (1.5 t.u.), used as ground truth for validation.
 
 **Figure settings:**
 All notebooks use publication-quality figure settings:

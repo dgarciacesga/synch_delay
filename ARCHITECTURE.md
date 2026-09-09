@@ -98,6 +98,7 @@ class SignalPair:
     name_a: str = "Signal A"
     name_b: str = "Signal B"
     sampling_rate: float = 1.0
+    time_unit: str = "t.u."
 ```
 
 **Purpose:** Immutable container for signal pair with metadata.
@@ -106,6 +107,7 @@ class SignalPair:
 - Auto-generates `time` array if not provided
 - Validates equal length in `__post_init__`
 - Provides `n_samples` property
+- Provides `freq_unit` property (returns "Hz" for time_unit="s", "1/(t.u.)" otherwise)
 
 **Design rationale:**
 - Dataclass for immutability and clarity
@@ -682,6 +684,7 @@ class SignalGroup:
     names: List[str]
     time: Optional[np.ndarray]
     sampling_rate: float
+    time_unit: str = "t.u."
     
 # Analyzer generalization
 def compute_order_parameter(self) -> np.ndarray:

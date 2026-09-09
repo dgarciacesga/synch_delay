@@ -188,14 +188,15 @@ class DelayCharacterizationPipeline:
         self.optimal_lags = find_optimal_lags(self.combined_results, self.max_lag)
 
         # Print summary
+        tu = self.signal_pair.time_unit
         print(
-            f"  Best Kuramoto lag: {self.optimal_lags['best_kuramoto_lag']} steps ({self.optimal_lags['best_kuramoto_lag'] / self.signal_pair.sampling_rate:.3f}s)"
+            f"  Best Kuramoto lag: {self.optimal_lags['best_kuramoto_lag']} steps ({self.optimal_lags['best_kuramoto_lag'] / self.signal_pair.sampling_rate:.3f} {tu})"
         )
         print(
-            f"  Best JRP lag: {self.optimal_lags['best_jrp_lag']} steps ({self.optimal_lags['best_jrp_lag'] / self.signal_pair.sampling_rate:.3f}s)"
+            f"  Best JRP lag: {self.optimal_lags['best_jrp_lag']} steps ({self.optimal_lags['best_jrp_lag'] / self.signal_pair.sampling_rate:.3f} {tu})"
         )
         print(
-            f"  Best Combined lag: {self.optimal_lags['best_combined_lag']} steps ({self.optimal_lags['best_combined_lag'] / self.signal_pair.sampling_rate:.3f}s)"
+            f"  Best Combined lag: {self.optimal_lags['best_combined_lag']} steps ({self.optimal_lags['best_combined_lag'] / self.signal_pair.sampling_rate:.3f} {tu})"
         )
 
         return self
@@ -212,6 +213,25 @@ class DelayCharacterizationPipeline:
             self.run()
         return self.optimal_lags
 
+    def _get_lag_label(self) -> str:
+        """Get lag axis label with correct time unit."""
+        tu = self.signal_pair.time_unit
+        return f"Lag ({tu})"
+
+    def _get_max_sustained_label(self) -> str:
+        """Get max sustained axis label with correct time unit."""
+        tu = self.signal_pair.time_unit
+        return f"Max Sustained ({tu})"
+
+    def _format_lag(self, lag: int) -> float:
+        """Convert lag steps to time units."""
+        return lag / self.signal_pair.sampling_rate
+
+    def _format_delay_label(self, delay: float) -> str:
+        """Format delay with correct time unit."""
+        tu = self.signal_pair.time_unit
+        return f"{delay:.2f} {tu}"
+
     def plot_kuramoto(self, **kwargs):
         """Plot Kuramoto metrics vs lag."""
         if self.kuramoto_results is None:
@@ -225,38 +245,40 @@ class DelayCharacterizationPipeline:
         if self.combined_results is not None:
             df = df.merge(self.combined_results[["lag", "kuramoto_score"]], on="lag", how="left")
 
-        true_delay_sec = kwargs.get("true_delay_sec", None)
+        true_delay = kwargs.get("true_delay_sec", None)
+        lag_label = self._get_lag_label()
+        max_sustained_label = self._get_max_sustained_label()
 
-        axes[0, 0].plot(df["lag_sec"], df["r_mean"], "b-", linewidth=1)
-        axes[0, 0].set_xlabel("Lag (seconds)")
+        axes[0, 0].plot(df["lag_tu"], df["r_mean"], "b-", linewidth=1)
+        axes[0, 0].set_xlabel(lag_label)
         axes[0, 0].set_ylabel("Mean Kuramoto r")
         axes[0, 0].set_title("Mean Kuramoto Order Parameter vs Lag")
         axes[0, 0].grid(False)
-        if true_delay_sec is not None:
+        if true_delay is not None:
             axes[0, 0].axvline(
-                x=true_delay_sec,
+                x=true_delay,
                 color="r",
                 linestyle="--",
                 alpha=0.7,
-                label=f"True delay ({true_delay_sec:.2f}s)",
+                label=f"True delay ({self._format_delay_label(true_delay)})",
             )
             axes[0, 0].legend()
 
-        axes[0, 1].plot(df["lag_sec"], df["frac_above_07"], "r-", linewidth=1)
-        axes[0, 1].set_xlabel("Lag (seconds)")
+        axes[0, 1].plot(df["lag_tu"], df["frac_above_07"], "r-", linewidth=1)
+        axes[0, 1].set_xlabel(lag_label)
         axes[0, 1].set_ylabel("Fraction R > 0.7")
         axes[0, 1].set_title("Fraction Above Threshold vs Lag")
         axes[0, 1].grid(False)
 
-        axes[1, 0].plot(df["lag_sec"], df["max_sustained_sec"], "g-", linewidth=1)
-        axes[1, 0].set_xlabel("Lag (seconds)")
-        axes[1, 0].set_ylabel("Max Sustained (s)")
+        axes[1, 0].plot(df["lag_tu"], df["max_sustained_tu"], "g-", linewidth=1)
+        axes[1, 0].set_xlabel(lag_label)
+        axes[1, 0].set_ylabel(max_sustained_label)
         axes[1, 0].set_title("Max Sustained Synchronization vs Lag")
         axes[1, 0].grid(False)
 
         if "kuramoto_score" in df.columns:
-            axes[1, 1].plot(df["lag_sec"], df["kuramoto_score"], "k-", linewidth=1)
-            axes[1, 1].set_xlabel("Lag (seconds)")
+            axes[1, 1].plot(df["lag_tu"], df["kuramoto_score"], "k-", linewidth=1)
+            axes[1, 1].set_xlabel(lag_label)
             axes[1, 1].set_ylabel("Kuramoto Score")
             axes[1, 1].set_title("Kuramoto Score (normalized frac × r_mean)")
             axes[1, 1].grid(False)
@@ -278,35 +300,37 @@ class DelayCharacterizationPipeline:
         if self.combined_results is not None:
             jrp_df = jrp_df.merge(self.combined_results[["lag", "jrp_score"]], on="lag", how="left")
 
-        true_delay_sec = kwargs.get("true_delay_sec", None)
+        true_delay = kwargs.get("true_delay_sec", None)
 
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         fig.patch.set_facecolor("white")
 
-        axes[0, 0].plot(jrp_df["lag_sec"], jrp_df["jrp_RR"], "b-o", linewidth=1, markersize=3)
-        axes[0, 0].set_xlabel("Lag (seconds)")
+        lag_label = self._get_lag_label()
+
+        axes[0, 0].plot(jrp_df["lag_tu"], jrp_df["jrp_RR"], "b-o", linewidth=1, markersize=3)
+        axes[0, 0].set_xlabel(lag_label)
         axes[0, 0].set_ylabel("Joint Recurrence Rate")
         axes[0, 0].set_title("JRP: Recurrence Rate vs Lag")
         axes[0, 0].grid(False)
-        if true_delay_sec is not None:
-            axes[0, 0].axvline(x=true_delay_sec, color="r", linestyle="--", alpha=0.7, label=f"True delay ({true_delay_sec:.2f}s)")
+        if true_delay is not None:
+            axes[0, 0].axvline(x=true_delay, color="r", linestyle="--", alpha=0.7, label=f"True delay ({self._format_delay_label(true_delay)})")
             axes[0, 0].legend()
 
-        axes[0, 1].plot(jrp_df["lag_sec"], jrp_df["jrp_DET"], "r-o", linewidth=1, markersize=3)
-        axes[0, 1].set_xlabel("Lag (seconds)")
+        axes[0, 1].plot(jrp_df["lag_tu"], jrp_df["jrp_DET"], "r-o", linewidth=1, markersize=3)
+        axes[0, 1].set_xlabel(lag_label)
         axes[0, 1].set_ylabel("Determinism")
         axes[0, 1].set_title("JRP: Determinism vs Lag")
         axes[0, 1].grid(False)
 
-        axes[1, 0].plot(jrp_df["lag_sec"], jrp_df["jrp_LAM"], "g-o", linewidth=1, markersize=3)
-        axes[1, 0].set_xlabel("Lag (seconds)")
+        axes[1, 0].plot(jrp_df["lag_tu"], jrp_df["jrp_LAM"], "g-o", linewidth=1, markersize=3)
+        axes[1, 0].set_xlabel(lag_label)
         axes[1, 0].set_ylabel("Laminarity")
         axes[1, 0].set_title("JRP: Laminarity vs Lag")
         axes[1, 0].grid(False)
 
         if "jrp_score" in jrp_df.columns:
-            axes[1, 1].plot(jrp_df["lag_sec"], jrp_df["jrp_score"], "k-o", linewidth=1, markersize=3)
-            axes[1, 1].set_xlabel("Lag (seconds)")
+            axes[1, 1].plot(jrp_df["lag_tu"], jrp_df["jrp_score"], "k-o", linewidth=1, markersize=3)
+            axes[1, 1].set_xlabel(lag_label)
             axes[1, 1].set_ylabel("JRP Score (norm RR)")
             axes[1, 1].set_title("JRP Score vs Lag")
             axes[1, 1].grid(False)
@@ -320,32 +344,34 @@ class DelayCharacterizationPipeline:
             self.run()
 
         df = self.combined_results
+        lag_label = self._get_lag_label()
+        tu = self.signal_pair.time_unit
 
         fig, axes = plt.subplots(2, 2, figsize=(14, 10))
         fig.patch.set_facecolor("white")
 
-        axes[0, 0].plot(df["lag_sec"], df["kuramoto_score"], "b-", linewidth=1, label="Kuramoto")
-        axes[0, 0].set_xlabel("Lag (seconds)")
+        axes[0, 0].plot(df["lag_tu"], df["kuramoto_score"], "b-", linewidth=1, label="Kuramoto")
+        axes[0, 0].set_xlabel(lag_label)
         axes[0, 0].set_ylabel("Score")
         axes[0, 0].set_title("Kuramoto Score vs Lag")
         axes[0, 0].grid(False)
         axes[0, 0].legend()
 
-        axes[0, 1].plot(df["lag_sec"], df["jrp_score"], "r-", linewidth=1, label="JRP")
-        axes[0, 1].set_xlabel("Lag (seconds)")
+        axes[0, 1].plot(df["lag_tu"], df["jrp_score"], "r-", linewidth=1, label="JRP")
+        axes[0, 1].set_xlabel(lag_label)
         axes[0, 1].set_ylabel("Score")
         axes[0, 1].set_title("JRP Score vs Lag")
         axes[0, 1].grid(False)
         axes[0, 1].legend()
 
-        axes[1, 0].plot(df["lag_sec"], df["combined_score"], "k-", linewidth=2, label="Combined")
-        axes[1, 0].set_xlabel("Lag (seconds)")
+        axes[1, 0].plot(df["lag_tu"], df["combined_score"], "k-", linewidth=2, label="Combined")
+        axes[1, 0].set_xlabel(lag_label)
         axes[1, 0].set_ylabel("Score")
         axes[1, 0].set_title("Combined Score (mean of normalized)")
         axes[1, 0].grid(False)
         axes[1, 0].legend()
 
-        # Mark optimal lags (convert to seconds)
+        # Mark optimal lags
         opt = self.optimal_lags
         sr = self.signal_pair.sampling_rate
         axes[1, 0].axvline(
@@ -353,21 +379,21 @@ class DelayCharacterizationPipeline:
             color="b",
             linestyle="--",
             alpha=0.7,
-            label=f'Best Kuramoto ({opt["best_kuramoto_lag"]/sr:.3f}s)',
+            label=f'Best Kuramoto ({opt["best_kuramoto_lag"]/sr:.3f} {tu})',
         )
         axes[1, 0].axvline(
             x=opt["best_jrp_lag"] / sr,
             color="r",
             linestyle="--",
             alpha=0.7,
-            label=f'Best JRP ({opt["best_jrp_lag"]/sr:.3f}s)',
+            label=f'Best JRP ({opt["best_jrp_lag"]/sr:.3f} {tu})',
         )
         axes[1, 0].axvline(
             x=opt["best_combined_lag"] / sr,
             color="k",
             linestyle="--",
             alpha=0.7,
-            label=f'Best Combined ({opt["best_combined_lag"]/sr:.3f}s)',
+            label=f'Best Combined ({opt["best_combined_lag"]/sr:.3f} {tu})',
         )
         axes[1, 0].legend()
 
@@ -375,11 +401,11 @@ class DelayCharacterizationPipeline:
         axes[1, 1].axis("off")
         summary_text = (
             f"Optimal Lags:\n"
-            f"  Kuramoto: {opt['best_kuramoto_lag']} steps ({opt['best_kuramoto_lag']/sr:.3f}s)\n"
-            f"  JRP:      {opt['best_jrp_lag']} steps ({opt['best_jrp_lag']/sr:.3f}s)\n"
-            f"  Combined: {opt['best_combined_lag']} steps ({opt['best_combined_lag']/sr:.3f}s)\n\n"
-            f"Lag range: ±{self.max_lag} steps (±{self.max_lag/sr:.1f}s)\n"
-            f"Lag step:  {self.lag_step} step(s) ({self.lag_step/sr:.3f}s)"
+            f"  Kuramoto: {opt['best_kuramoto_lag']} steps ({opt['best_kuramoto_lag']/sr:.3f} {tu})\n"
+            f"  JRP:      {opt['best_jrp_lag']} steps ({opt['best_jrp_lag']/sr:.3f} {tu})\n"
+            f"  Combined: {opt['best_combined_lag']} steps ({opt['best_combined_lag']/sr:.3f} {tu})\n\n"
+            f"Lag range: ±{self.max_lag} steps (±{self.max_lag/sr:.1f} {tu})\n"
+            f"Lag step:  {self.lag_step} step(s) ({self.lag_step/sr:.3f} {tu})"
         )
         axes[1, 1].text(
             0.1, 0.5, summary_text, fontsize=12, verticalalignment="center", family="monospace"
@@ -417,22 +443,24 @@ class DelayCharacterizationPipeline:
         # Summary text
         opt = self.get_optimal_lags()
         sr = self.signal_pair.sampling_rate
+        tu = self.signal_pair.time_unit
+        freq_unit = self.signal_pair.freq_unit
         with open(f"{output_dir}/delay_summary.txt", "w") as f:
             f.write(f"Delay Characterization Summary\n")
             f.write(f"==============================\n\n")
             f.write(f"Data source: {self.data_source.get_description()}\n")
-            f.write(f"Sampling rate: {sr} Hz\n")
+            f.write(f"Sampling rate: {sr} {freq_unit}\n")
             f.write(f"Signal A: {self.signal_pair.name_a}\n")
             f.write(f"Signal B: {self.signal_pair.name_b}\n")
             f.write(f"Samples: {self.signal_pair.n_samples}\n")
             f.write(f"Lag range: ±{self.max_lag} steps (lag step: {self.lag_step})\n\n")
             f.write(f"Optimal Lags:\n")
             f.write(
-                f"  Kuramoto: {opt['best_kuramoto_lag']} steps ({opt['best_kuramoto_lag']/sr:.3f}s)\n"
+                f"  Kuramoto: {opt['best_kuramoto_lag']} steps ({opt['best_kuramoto_lag']/sr:.3f} {tu})\n"
             )
-            f.write(f"  JRP:      {opt['best_jrp_lag']} steps ({opt['best_jrp_lag']/sr:.3f}s)\n")
+            f.write(f"  JRP:      {opt['best_jrp_lag']} steps ({opt['best_jrp_lag']/sr:.3f} {tu})\n")
             f.write(
-                f"  Combined: {opt['best_combined_lag']} steps ({opt['best_combined_lag']/sr:.3f}s)\n\n"
+                f"  Combined: {opt['best_combined_lag']} steps ({opt['best_combined_lag']/sr:.3f} {tu})\n\n"
             )
 
             # Use combined results for scores
@@ -446,7 +474,7 @@ class DelayCharacterizationPipeline:
                     f.write(f"Kuramoto at best lag:\n")
                     f.write(f"  r_mean: {best_k['r_mean']:.4f}\n")
                     f.write(f"  frac_above_07: {best_k['frac_above_07']:.4f}\n")
-                    f.write(f"  max_sustained_sec: {best_k['max_sustained_sec']:.3f}s\n")
+                    f.write(f"  max_sustained: {best_k['max_sustained_tu']:.3f} {tu}\n")
                     f.write(f"  kuramoto_score: {best_k['kuramoto_score']:.4f}\n\n")
 
                 # JRP at best lag

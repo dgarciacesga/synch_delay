@@ -29,10 +29,11 @@ class SynchronizationVisualizer:
             sig_b = sig_b[:n_samples]
 
         time = np.arange(len(sig_a)) / self.analyzer.signal_pair.sampling_rate
+        tu = self.analyzer.signal_pair.time_unit
 
         ax.plot(time, sig_a, label=self.analyzer.signal_pair.name_a, alpha=0.7)
         ax.plot(time, sig_b, label=self.analyzer.signal_pair.name_b, alpha=0.7)
-        ax.set_xlabel("Time")
+        ax.set_xlabel(f"Time ({tu})")
         ax.set_ylabel("Amplitude")
         ax.set_title("Raw Signals")
         ax.legend()
@@ -73,10 +74,11 @@ class SynchronizationVisualizer:
             self.analyzer.compute_hilbert_transform()
 
         time = np.arange(len(self.analyzer.phase_a)) / self.analyzer.signal_pair.sampling_rate
+        tu = self.analyzer.signal_pair.time_unit
 
         ax.plot(time, self.analyzer.phase_a, label=self.analyzer.signal_pair.name_a, alpha=0.7)
         ax.plot(time, self.analyzer.phase_b, label=self.analyzer.signal_pair.name_b, alpha=0.7)
-        ax.set_xlabel("Time")
+        ax.set_xlabel(f"Time ({tu})")
         ax.set_ylabel("Phase (rad)")
         ax.set_title("Instantaneous Phases")
         ax.legend()
@@ -134,6 +136,7 @@ class SynchronizationVisualizer:
             self.analyzer.compute_order_parameter()
 
         time = np.arange(len(self.analyzer.order_parameter)) / self.analyzer.signal_pair.sampling_rate
+        tu = self.analyzer.signal_pair.time_unit
 
         ax.plot(time, self.analyzer.order_parameter, "b-", alpha=0.5, label="R(t)")
 
@@ -142,7 +145,7 @@ class SynchronizationVisualizer:
             ax.plot(time, sliding, "r-", linewidth=2, label=f"Sliding (w={sliding_window})")
 
         ax.axhline(y=0.8, color="g", linestyle="--", alpha=0.5, label="Sync threshold (0.8)")
-        ax.set_xlabel("Time")
+        ax.set_xlabel(f"Time ({tu})")
         ax.set_ylabel("Order Parameter R(t)")
         ax.set_title("Kuramoto Order Parameter")
         ax.set_ylim(0, 1.05)
@@ -160,12 +163,13 @@ class SynchronizationVisualizer:
             self.analyzer.compute_order_parameter()
 
         time = np.arange(len(self.analyzer.phase_diff)) / self.analyzer.signal_pair.sampling_rate
+        tu = self.analyzer.signal_pair.time_unit
 
         ax.plot(time, self.analyzer.phase_diff, "g-", alpha=0.7)
         ax.axhline(y=0, color="k", linestyle="-", alpha=0.3)
         ax.axhline(y=np.pi, color="r", linestyle="--", alpha=0.5, label="π")
         ax.axhline(y=-np.pi, color="r", linestyle="--", alpha=0.5, label="-π")
-        ax.set_xlabel("Time")
+        ax.set_xlabel(f"Time ({tu})")
         ax.set_ylabel("Phase Difference (rad)")
         ax.set_title("Phase Difference φ₁ - φ₂")
         ax.legend()

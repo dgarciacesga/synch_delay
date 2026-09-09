@@ -38,7 +38,7 @@ lorenz = LorenzDataSource(
     a=10.0, b=28.0, c=8.0/3.0,
     initial_values=[0.01, 0, 0.3],
     iterations=5000,
-    delay_steps=150,   # 1.5s delay at 100 Hz sampling (applied to signal A)
+    delay_steps=150,   # 150 steps delay at 100 samples/t.u. (applied to signal A)
     noise_std=0.05,    # optional measurement noise
     sampling_rate=100.0
 )
@@ -76,7 +76,7 @@ lorenz = LorenzDataSource(
     a=10.0, b=28.0, c=8.0/3.0,
     initial_values=[0.01, 0, 0.3],
     iterations=5000,
-    delay_steps=150,   # 1.5s delay at 100 Hz sampling
+    delay_steps=150,   # 150 steps delay at 100 samples/t.u.
     noise_std=0.05,
     sampling_rate=100.0
 )
@@ -119,7 +119,7 @@ from synch_analysis import BelousovZhabotinskyDataSource
 bz = BelousovZhabotinskyDataSource(
     f=1.0, q=0.05, eps=0.02,
     iterations=10000,
-    delay_steps=100,   # Simulated sensor delay
+    delay_steps=100,   # Simulated sensor delay (100 steps at 100 samples/t.u.)
     noise_std=0.05,
     sampling_rate=100.0
 )
@@ -177,7 +177,7 @@ Lorenz:
   --x, --y, --z       Initial values (default: 0.01, 0, 0.3)
   --iterations        Number of iterations (default: 1000)
   --variable          Variable to extract: x|y|z (default: x)
-  --sampling-rate     Sampling rate in Hz (default: 100)
+  --sampling-rate     Sampling rate in samples/t.u. (default: 100)
   --delay-steps       Sensor delay in time steps (default: 0)
   --noise             Measurement noise std (default: 0)
 
