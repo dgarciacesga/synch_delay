@@ -167,6 +167,7 @@ class LorenzDataSource(DataSource):
             name_a=name_a,
             name_b=f"Lorenz {self.variable} (source)",
             sampling_rate=self.sampling_rate,
+            time_unit="t.u.",
         )
 
     def get_description(self) -> str:
@@ -209,6 +210,7 @@ class SinusoidDataSource(DataSource):
             name_a=f"Sin phi0={self.ph0_a}, f={self.frq_a}, d={self.delay_a}",
             name_b=f"Sin phi0={self.ph0_b}, f={self.frq_b}, d={self.delay_b}",
             sampling_rate=self.sampling_rate,
+            time_unit="t.u.",
         )
 
     def get_description(self) -> str:
@@ -335,6 +337,7 @@ class BelousovZhabotinskyDataSource(DataSource):
             name_a=name_a,
             name_b=f"BZ {self.variable} (source)",
             sampling_rate=self.sampling_rate,
+            time_unit="t.u.",
         )
 
     def get_description(self) -> str:
@@ -396,6 +399,7 @@ class CoupledOscillatorDataSource(DataSource):
             name_a=f"Oscillator 1 (w={self.natural_freqs[0]:.2f})",
             name_b=f"Oscillator 2 (w={self.natural_freqs[1]:.2f})",
             sampling_rate=self.sampling_rate,
+            time_unit="t.u.",
         )
 
     def get_description(self) -> str:

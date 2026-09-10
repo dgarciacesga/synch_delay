@@ -9,14 +9,14 @@ Samples: 1199
 Lag range: ±500 steps (lag step: 5)
 
 Optimal Lags:
-  Kuramoto: 90 steps (90.000s)
-  JRP:      90 steps (90.000s)
-  Combined: 90 steps (90.000s)
+  Kuramoto: 90 steps (90.000 s)
+  JRP:      90 steps (90.000 s)
+  Combined: 90 steps (90.000 s)
 
 Kuramoto at best lag:
   r_mean: 0.8377
   frac_above_07: 0.8157
-  max_sustained_sec: 74.000s
+  max_sustained: 74.000 s
   kuramoto_score: 0.9941
 
 JRP at best lag:

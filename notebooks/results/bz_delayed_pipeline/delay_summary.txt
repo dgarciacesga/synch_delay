@@ -2,21 +2,21 @@ Delay Characterization Summary
 ==============================
 
 Data source: Belousov-Zhabotinsky (Oregonator): f=1.0, q=0.05, eps=0.02, var=x, delay=10 steps, noise=0.05
-Sampling rate: 100.0 Hz
+Sampling rate: 100.0 1/(t.u.)
 Signal A: BZ x (delayed by 10 steps)
 Signal B: BZ x (source)
 Samples: 3000
 Lag range: ±50 steps (lag step: 1)
 
 Optimal Lags:
-  Kuramoto: -10 steps (-0.100s)
-  JRP:      -10 steps (-0.100s)
-  Combined: -10 steps (-0.100s)
+  Kuramoto: -10 steps (-0.100 t.u.)
+  JRP:      -10 steps (-0.100 t.u.)
+  Combined: -10 steps (-0.100 t.u.)
 
 Kuramoto at best lag:
   r_mean: 0.9894
   frac_above_07: 0.9997
-  max_sustained_sec: 29.990s
+  max_sustained: 29.990 t.u.
   kuramoto_score: 1.0000
 
 JRP at best lag:

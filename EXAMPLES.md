@@ -343,7 +343,7 @@ parquet = ParquetDataSource(
     index_end=10000,
     window=60,              # 60-sample rolling mean
     lag=None,               # No time lag
-    sampling_rate=1.0       # 1 Hz (industrial data with real timestamps)
+    sampling_rate=1.0       # 1 1/(t.u.) (industrial data with real timestamps)
 )
 
 pipeline = DelayCharacterizationPipeline(
